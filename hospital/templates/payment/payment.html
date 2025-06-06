@@ -1,0 +1,55 @@
+{% extends "base_layout.html" %}
+{% block content %}
+    <h3>{{ title }}</h3>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <div class="table-responsive">
+        {% if appointment and appointment.appointment_id %}
+            <form action="{% url 'payment' payment.payment_id %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="payment_id" value="{{ payment.payment_id }}">
+                <p>Lịch hẹn: #{{ appointment.appointment_id }}</p>
+                <p>Số tiền: {{ amount }} VNĐ</p>
+                <div class="form-group">
+                    <label for="bank_code">Ngân hàng</label>
+                    <select name="bank_code" id="bank_code" class="form-control">
+                        <option value="">Không chọn</option>
+                        <option value="NCB"> Ngân hàng NCB</option>
+                        <option value="AGRIBANK"> Ngân hàng Agribank</option>
+                        <option value="SCB"> Ngân hàng SCB</option>
+                        <option value="SACOMBANK">Ngân hàng SacomBank</option>
+                        <option value="EXIMBANK"> Ngân hàng EximBank</option>
+                        <option value="MSBANK"> Ngân hàng MSBANK</option>
+                        <option value="NAMABANK"> Ngân hàng NamABank</option>
+                        <option value="VNMART"> Ví điện tử VnMart</option>
+                        <option value="VIETINBANK">Ngân hàng Vietinbank</option>
+                        <option value="VIETCOMBANK"> Ngân hàng VCB</option>
+                        <option value="HDBANK">Ngân hàng HDBank</option>
+                        <option value="DONGABANK"> Ngân hàng Dong A</option>
+                        <option value="TPBANK"> Ngân hàng TPBank</option>
+                        <option value="OJB"> Ngân hàng OceanBank</option>
+                        <option value="BIDV"> Ngân hàng BIDV</option>
+                        <option value="TECHCOMBANK"> Ngân hàng Techcombank</option>
+                        <option value="VPBANK"> Ngân hàng VPBank</option>
+                        <option value="MBBANK"> Ngân hàng MBBank</option>
+                        <option value="ACB"> Ngân hàng ACB</option>
+                        <option value="OCB"> Ngân hàng OCB</option>
+                        <option value="IVB"> Ngân hàng IVB</option>
+                        <option value="VISA"> Thanh toán qua VISA/MASTER</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="language">Ngôn ngữ</label>
+                    <select name="language" id="language" class="form-control">
+                        <option value="vn">Tiếng Việt</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-default">Thanh toán Redirect</button>
+            </form>
+        {% else %}
+            <div class="alert alert-danger">Không tìm thấy lịch hẹn hoặc ID không hợp lệ.</div>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base_layout.html" %}
+{% block content %}
+    <h3>{{ title }}</h3>
+    <div class="table-responsive">
+        {% if result %}
+            <p>Kết quả thanh toán: {{ result }}</p>
+            <p>Nội dung thanh toán: {{ order_id }}</p>
+            <p>Số tiền: {{ amount }} VNĐ</p>
+            <p>Mô tả đơn hàng: {{ order_desc }}</p>
+            <p>Mã giao dịch VNPay: {{ vnp_transaction_no }}</p>
+            <p>Mã phản hồi VNPay: {{ vnp_response_code }}</p>
+            {% if payment %}
+                <p>Trạng thái thanh toán: {{ payment.get_payment_status_display }}</p>
+            {% else %}
+                <p>Không tìm thấy thông tin thanh toán.</p>
+            {% endif %}
+        {% else %}
+            <p>Không có dữ liệu trả về.</p>
+        {% endif %}
+    </div>
+{% endblock %}

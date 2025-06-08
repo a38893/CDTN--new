@@ -116,7 +116,7 @@ class MedicalRecordForm(forms.ModelForm):
 @admin.register(MedicalRecord)
 class MedicalRecordAdmin(admin.ModelAdmin):
     form = MedicalRecordForm
-    list_display = ('record_id', 'appointment', 'record_status', 'diagnosis', 'treatment', 'result')
+    list_display = ('record_id', 'appointment', 'record_status', 'diagnosis', 'treatment', 'record_result')
     search_fields = ('record_id', 'appointment__appointment_id', 'diagnosis')
     inlines = [PatientTestInline, PrescriptionInline]
 
@@ -312,9 +312,9 @@ class PaymentDetailAdmin(admin.ModelAdmin):
     
 @admin.register(PatientTest)
 class PatientTestAdmin(admin.ModelAdmin):
-    list_display = ('patient_test_id', 'record','result', 'test', 'test_date', 'status', 'performed_by_doctor')
+    list_display = ('patient_test_id', 'record','test_result', 'test', 'test_date', 'test_status', 'performed_by_doctor')
     search_fields = ('record__appointment__appointment_id', 'test__test_name', 'performed_by_doctor__username')
-    list_filter = ('status', 'test__test_category')
+    list_filter = ('test_status', 'test__test_category')
     def has_view_permission(self, request, obj=None):
         # Admin, lễ tân, bác sĩ đều xem được
         return request.user.role in ['admin', 'receptionist', 'doctor']

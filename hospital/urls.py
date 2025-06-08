@@ -11,6 +11,7 @@ from hospital.api.resend_otp import ResendOTP
 from hospital.api.change_password import ChangePasswordAPI
 from hospital.api.reset_password import ResetPasswordAPI
 from hospital.api.logout import LogoutAPI
+from hospital.api.update_profile import UserProfileView
 from django.conf import settings
 from django.conf.urls.static import static
 router = DefaultRouter()
@@ -29,7 +30,7 @@ urlpatterns = [
     # đăng nhập
     path('api/login/', LoginAPI.as_view(), name='login_api'),
     path('api/logout/', LogoutAPI.as_view(), name='logout_api'),
-
+    path('api/profile/', UserProfileView.as_view(), name='user_profile_api'),
     # đăng ký lịch hẹn
     path('api/appointmentregister/', AppointmentAPI.as_view(), name='appointment_api'),
 

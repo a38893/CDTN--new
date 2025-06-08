@@ -22,7 +22,7 @@ class UserManager(BaseUserManager):
 class OtpUsers(models.Model):
     otp_id = models.AutoField(primary_key=True)
     user= models.ForeignKey('User', on_delete=models.CASCADE, related_name='otp_users')
-    is_phone_verified  = models.BooleanField(default=False)
+    is_verified  = models.BooleanField(default=False)
     otp_code = models.CharField(max_length=6, blank=True, null=True)
     otp_created_at = models.DateTimeField(blank=True, null=True)
 
@@ -44,7 +44,7 @@ class User(AbstractBaseUser):
     address = models.TextField()
     birth_day = models.DateField()
     phone = models.CharField(max_length=10, unique= True)
-    gmail = models.EmailField(max_length=254,unique=True)    
+    gmail = models.EmailField(max_length=100,unique=True)    
     specialty = models.CharField(max_length=50, blank=True, null=True)
     degree = models.CharField(max_length=50, blank=True, null=True)
     img = models.ImageField(upload_to='img/', blank=True, null=True)
@@ -84,7 +84,6 @@ class Appointment(models.Model):
     appointment_day = models.DateField(default=date.today)
     appointment_status = models.CharField(max_length=20, default='pending')
     appointment_time = models.TimeField(default=time(12, 0))
-    description = models.TextField(blank=True, null=True)
     appointment_created_at = models.DateTimeField(auto_now_add=True)
     appointment_updated_at = models.DateTimeField(auto_now=True)
 
@@ -96,12 +95,12 @@ class Appointment(models.Model):
 
 class MedicalRecord(models.Model):
     record_id = models.AutoField(primary_key=True)
-    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='medical_records')
+    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='medical_records')
     record_status = models.CharField(max_length=20)
     record_note = models.TextField(blank=True, null=True)
     diagnosis = models.TextField(blank=True, null=True)
     treatment = models.TextField(blank=True, null=True)
-    result = models.TextField(blank=True, null=True)
+    record_result = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Medical Record {self.record_id}"
@@ -113,9 +112,9 @@ class PatientTest(models.Model):
     patient_test_id = models.AutoField(primary_key=True)
     record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='patient_tests')
     test = models.ForeignKey('LabTest', on_delete=models.CASCADE, related_name='patient_tests')
-    result = models.TextField(blank=True, null=True)
+    test_result = models.TextField(blank=True, null=True)
     test_date = models.DateField()
-    status = models.CharField(max_length=20)
+    test_status = models.CharField(max_length=20)
     performed_by_doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='performed_tests')
 
     def __str__(self):
@@ -127,7 +126,7 @@ class PatientTest(models.Model):
 class LabTest(models.Model):
     test_id = models.AutoField(primary_key=True)
     test_name = models.CharField(max_length=100)
-    description = models.TextField()
+    test_description = models.TextField()
     test_price = models.DecimalField(max_digits=10, decimal_places=2)
     test_category = models.CharField(max_length=100)
 
@@ -156,12 +155,12 @@ class Medication(models.Model):
         db_table = 'medications'
 
 class Prescription(models.Model):
-    prescription_id = models.AutoField(primary_key=True)  # Đúng tên, không phải presciption_id
+    prescription_id = models.AutoField(primary_key=True) 
     record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='prescriptions')
     medication = models.ForeignKey(Medication, on_delete=models.CASCADE, related_name='prescriptions')
-    duration = models.CharField(max_length=50)
+    duration = models.CharField(max_length=128)
     dosage = models.CharField(max_length=50)
-    quantity = models.IntegerField()
+    prescription_quantity = models.IntegerField()
     instructions = models.TextField()
     frequency = models.CharField(max_length=50)
 
@@ -181,7 +180,7 @@ class Payment(models.Model):
         default='unpaid'
     )
     payment_type = models.CharField(max_length=20, choices=[('test', 'Xét nghiệm'), ('prescription', 'thuốc'), ('deposit', 'Đặt cọc')], default='deposit', blank=True, null=True)
-    order_code = models.CharField(max_length=50, unique=True) 
+    order_code = models.CharField(max_length=20, unique=True) 
     payment_method = models.CharField(max_length=50, blank=True, null=True)
     payment_timestamp = models.DateTimeField(auto_now_add=True)
     vnp_create_date = models.CharField(max_length=14, blank=True, null=True)

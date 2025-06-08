@@ -10,11 +10,20 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['user_id', 'full_name', 'username',  'gender', 'phone', 'address', 'birth_day']
-        read_only_fields = ['user_id']
+        read_only_fields = ['user_id', 'usename']
         extra_kwargs = {
             'password': {'write_only': True},
             'is_superuser': {'default': False}  
         }
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['full_name', 'username',  'gender', 'phone', 'address', 'birth_day']
+        read_only_fields = [ 'usename']
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'is_superuser': {'default': False}  }
 # 'username', 'full_name', 'gender', 'phone', 'address', 'birth_day'
 
 class RegisterSerializer(serializers.ModelSerializer):

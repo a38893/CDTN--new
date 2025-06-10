@@ -17,6 +17,7 @@ class ResetPasswordAPI(APIView):
         gmail = request.data.get('gmail')
         otp = request.data.get('otp')
         new_password = request.data.get('new_password')
+        new_password2 = request.data.get('new_password2')
         try:
             # Tìm user theo username hoặc gmail
             user = None
@@ -26,6 +27,10 @@ class ResetPasswordAPI(APIView):
                 user = User.objects.filter(gmail=gmail).order_by('-user_id').first()
             if user is None:
                 return Response({"message": "Không tìm thấy người dùng!"}, status=status.HTTP_404_NOT_FOUND)
+            if not new_password or not new_password2:
+                return Response({"message": "Vui lòng nhập đầy đủ mật khẩu mới và xác nhận mật khẩu mới!"}, status=status.HTTP_400_BAD_REQUEST)
+            if new_password != new_password2:
+                return Response({"message": "Mật khẩu mới và xác nhận mật khẩu không khớp!"}, status=status.HTTP_400_BAD_REQUEST)
             
             # Lấy OTP mới nhất của user
             otp_obj = OtpUsers.objects.filter(user=user, otp_code=otp).order_by('-otp_created_at').first()

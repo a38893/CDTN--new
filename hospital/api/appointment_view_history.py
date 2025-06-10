@@ -76,8 +76,7 @@ class AppointmentHistoryViewAPI(viewsets.ReadOnlyModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
                 
-            # Chỉ cho phép hủy lịch hẹn chưa diễn ra và chưa bị hủy
-            if appointment.appointment_status in ['pending']:
+            # if appointment.appointment_status in ['pending']:
                 appointment.appointment_status = 'cancelled'
                 appointment.save()
                 return Response(

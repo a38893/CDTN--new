@@ -173,7 +173,9 @@ def payment_return(request):
                 result = "Thành công"
                 if payment:
                     payment.payment_status = 'paid'
+                    payment.payment_method = 'banking'
                     payment.save()
+                    
                     # Cập nhật tất cả PaymentDetail liên quan
                     payment.details.update(detail_status='paid')
                     appointment = payment.appointment

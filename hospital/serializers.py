@@ -28,11 +28,15 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-
+    password2 = serializers.CharField(write_only=True, required=True, label="Xác nhận mật khẩu")
     class Meta:
         model = User
-        fields = ['username', 'password', 'full_name', 'gender', 'phone', 'address', 'birth_day', 'gmail']
-
+        fields = ['username', 'password','password2', 'full_name', 'gender', 'phone', 'address', 'birth_day', 'gmail']
+        extra_kwargs = {'password': {'write_only': True}}
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError("Mật khẩu và xác nhận mật khẩu không khớp!")
+        return attrs
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Tên đăng nhập đã tồn tại!")

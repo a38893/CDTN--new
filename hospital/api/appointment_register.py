@@ -72,7 +72,7 @@ class AppointmentAPI(APIView):
                     appointment=appointment,
                     total_amount=30000,
                     payment_status='pending',  
-                    # payment_method='bank_transfer'  # Phương thức thanh toán mặc định
+                    payment_method='banking'  
                 )
                 
                 return Response({

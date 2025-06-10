@@ -16,7 +16,7 @@ from django.contrib.auth.hashers import make_password
 # admin.site.register(User)
 admin.site.register(Prescription)
 # admin.site.register(PaymentDetail)
-admin.site.site_header = "Quản lý bệnh viện LHM"
+admin.site.site_header = "Quản lý phòng khám LHM"
 
 
 
@@ -60,6 +60,8 @@ class UserAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.current_user = kwargs.pop('current_user', None)
         super().__init__(*args, **kwargs)
+        if self.current_user and self.current_user.role == 'receptionist':
+            self.fields['role'].choices = [('patient', 'Patient')]
 
 class UsersAdmin(admin.ModelAdmin):
     form = UserAdminForm
@@ -95,14 +97,44 @@ class UsersAdmin(admin.ModelAdmin):
     
 admin.site.register(User, UsersAdmin)
 
+
 class PatientTestInline(admin.TabularInline):
     model = PatientTest
     extra = 1
+    exclude = ('test_status',)  
+    autocomplete_fields = ('test',)
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        return [f for f in fields if f != 'test_status']
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        if request.user.role == 'doctor':
+            return readonly + ['test_result', 'performed_by_doctor']
+        return readonly
+    def save_new_instance(self, form, commit=True):
+        obj = super().save_new_instance(form, commit=False)
+        request = form.request if hasattr(form, 'request') else None
+        # Nếu đã nhập test_result và performed_by_doctor đang null thì gán user đang đăng nhập
+        if request and obj.test_result and obj.performed_by_doctor is None:
+            obj.performed_by_doctor = request.user
+        if commit:
+            obj.save()
+        return obj
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for obj in instances:
+            # Nếu đã nhập test_result và performed_by_doctor đang null thì gán user đang đăng nhập
+            if obj.test_result and obj.performed_by_doctor is None:
+                obj.performed_by_doctor = request.user
+            obj.save()
+        formset.save_m2m()
 
 class PrescriptionInline(admin.TabularInline):
     model = Prescription
     extra = 1
-
+    autocomplete_fields = ('medication',)
 class MedicalRecordForm(forms.ModelForm):
     class Meta:
         model = MedicalRecord
@@ -110,16 +142,39 @@ class MedicalRecordForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Chỉ hiển thị appointment đã confirmed
-        self.fields['appointment'].queryset = Appointment.objects.filter(appointment_status='confirmed')
-
+        # Chỉ set queryset nếu trường 'appointment' có trong form
+        if 'appointment' in self.fields:
+            qs = Appointment.objects.filter(appointment_status='confirmed').exclude(medical_records__isnull=False)
+            if self.instance and self.instance.pk and hasattr(self.instance, 'appointment_id'):
+                # Khi sửa, cho phép chọn lại appointment cũ
+                qs = qs | Appointment.objects.filter(pk=self.instance.appointment_id)
+            self.fields['appointment'].queryset = qs
 @admin.register(MedicalRecord)
 class MedicalRecordAdmin(admin.ModelAdmin):
     form = MedicalRecordForm
-    list_display = ('record_id', 'appointment', 'record_status', 'diagnosis', 'treatment', 'record_result')
+    list_display = ('record_id_display', 'appointment_display', 'record_status_display', 'diagnosis_display', 'treatment_display', 'record_result_display')
     search_fields = ('record_id', 'appointment__appointment_id', 'diagnosis')
     inlines = [PatientTestInline, PrescriptionInline]
+    autocomplete_fields = ('appointment',)
 
+    def record_status_display(self, obj):
+        return obj.get_record_status_display()
+    record_status_display.short_description = 'Trạng thái'
+    def diagnosis_display(self, obj):
+        return obj.diagnosis
+    diagnosis_display.short_description = 'Chẩn đoán'
+    def treatment_display(self, obj):
+        return obj.treatment
+    treatment_display.short_description = 'Điều trị'
+    def record_result_display(self, obj):
+        return obj.record_result
+    record_result_display.short_description = 'Kết quả'
+    def appointment_display(self, obj):
+        return obj.appointment
+    appointment_display.short_description = 'Lịch hẹn'
+    def record_id_display(self, obj):
+        return obj.record_id
+    record_id_display.short_description = 'Mã hồ sơ'
     def save_formset(self, request, form, formset, change):
         instances = formset.save(commit=False)
         # Gom các dịch vụ mới theo loại
@@ -206,13 +261,16 @@ class MedicalRecordAdmin(admin.ModelAdmin):
 
 
     def has_change_permission(self, request, obj=None):
-        # Admin toàn quyền, bác sĩ chỉ được sửa record của mình
         if request.user.role == 'admin':
             return True
         if request.user.role == 'doctor':
             if obj is None:
-                return True  # Cho phép truy cập trang danh sách
+                return True
             return obj.appointment.doctor_user_id == request.user
+        if request.user.role == 'receptionist':
+            # Chỉ cho phép sửa khi record đang tiến hành
+            if obj and obj.record_status == 'đang tiến hành':
+                return True
         return False
 
     def has_add_permission(self, request):
@@ -287,29 +345,50 @@ class PaymentAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Admin và lễ tân được xóa
         return request.user.role in ['admin']
-    
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        # Nếu đã paid thì tất cả các trường đều readonly
+        if obj and obj.payment_status == 'paid':
+            # Lấy tất cả các trường trừ id
+            all_fields = [f.name for f in self.model._meta.fields if f.name != 'payment_id']
+            return readonly + all_fields
+        return readonly
+
+    def has_delete_permission(self, request, obj=None):
+        # Không cho phép xóa nếu đã paid
+        if obj and obj.payment_status == 'paid':
+            return False
+        return super().has_delete_permission(request, obj)
 @admin.register(PaymentDetail)
 class PaymentDetailAdmin(admin.ModelAdmin):
-    list_display = ('detail_id', 'payment', 'service_type', 'service_id', 'service_name', 'amount')
+    # Hiện tất cả các trường của model
+    def get_list_display(self, request):
+        return [field.name for field in self.model._meta.fields]
+
     search_fields = ('payment__appointment__appointment_id', 'service_type', 'service_name')
     list_filter = ('service_type',)
-    
+
     def has_view_permission(self, request, obj=None):
-        # Admin, lễ tân, bác sĩ đều xem được
+        # Lễ tân và admin đều xem được
         return request.user.role in ['admin', 'receptionist']
 
     def has_change_permission(self, request, obj=None):
-        # Admin và lễ tân được sửa
-        return request.user.role in ['admin', 'receptionist']
+        # Chỉ admin được sửa
+        return request.user.role == 'admin'
 
     def has_add_permission(self, request):
-        # Admin và lễ tân được thêm
-        return request.user.role in ['admin', 'receptionist']
+        # Chỉ admin được thêm
+        return request.user.role == 'admin'
 
     def has_delete_permission(self, request, obj=None):
-        # Admin và lễ tân được xóa
-        return request.user.role in ['admin']
-    
+        # Chỉ admin được xóa
+        return request.user.role == 'admin'
+
+    def get_readonly_fields(self, request, obj=None):
+        # Lễ tân luôn readonly tất cả trường
+        if request.user.role == 'receptionist':
+            return [field.name for field in self.model._meta.fields]
+        return super().get_readonly_fields(request, obj)
 @admin.register(PatientTest)
 class PatientTestAdmin(admin.ModelAdmin):
     list_display = ('patient_test_id', 'record','test_result', 'test', 'test_date', 'test_status', 'performed_by_doctor')

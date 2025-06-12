@@ -66,7 +66,6 @@ class AppointmentAPI(APIView):
                     doctor_user_id=doctor,
                     appointment_day=date,
                     appointment_time=time,
-                    description=description
                 )
                 Payment.objects.create(
                     appointment=appointment,

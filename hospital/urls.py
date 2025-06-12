@@ -12,9 +12,13 @@ from hospital.api.change_password import ChangePasswordAPI
 from hospital.api.reset_password import ResetPasswordAPI
 from hospital.api.logout import LogoutAPI
 from hospital.api.update_profile import UserProfileView
+from hospital.api.bill import PaymentListAPI
 from django.conf import settings
 from django.conf.urls.static import static
 router = DefaultRouter()
+
+
+
 
 # xem lịch sử đặt lịch hẹn http://127.0.0.1:8000/api/appointments/
 # hủy http://127.0.0.1:8000/api/appointments/1/cancel/
@@ -27,13 +31,15 @@ urlpatterns = [
     # đăng ký tài khoản
     path('api/register/', RegisterAPI.as_view(), name='register_api'),
 
+    #  hóa đơn
+    path('api/bills/', PaymentListAPI.as_view(), name='payment_list_api'),
+
     # đăng nhập
     path('api/login/', LoginAPI.as_view(), name='login_api'),
     path('api/logout/', LogoutAPI.as_view(), name='logout_api'),
     path('api/profile/', UserProfileView.as_view(), name='user_profile_api'),
     # đăng ký lịch hẹn
     path('api/appointmentregister/', AppointmentAPI.as_view(), name='appointment_api'),
-
 
     # nhập OTP với gmail và mã otp
     path('api/verify-otp/', VerifyOTP.as_view(), name='verify_otp'),

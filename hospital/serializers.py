@@ -2,7 +2,7 @@ import datetime
 from django.utils import timezone
 from datetime import time
 from rest_framework import serializers
-from .models import PatientTest, Prescription, User,Appointment, MedicalRecord
+from .models import PatientTest, Prescription, User,Appointment, MedicalRecord, Payment, PaymentDetail
 from django.contrib.auth.hashers import make_password
 
 
@@ -135,6 +135,7 @@ class MedicalRecordListSerializer(serializers.ModelSerializer):
         fields = ['record_id', 'appointment', 'diagnosis', 'treatment', 'result', 'record_note']
 
 class MedicalRecordDetailSerializer(serializers.ModelSerializer):
+
     patient_tests = PatientTestSerializer(many=True, read_only=True)
     prescriptions = PrescriptionSerializer(many=True, read_only=True)
 
@@ -143,4 +144,20 @@ class MedicalRecordDetailSerializer(serializers.ModelSerializer):
         fields = [
             'record_id', 'appointment', 'diagnosis', 'treatment', 'result', 'record_note',
             'patient_tests', 'prescriptions'
+        ]
+
+
+class PaymentDetailSerializer(serializers.Serializer):
+    class Meta:
+        model = PaymentDetail
+        fields = ['detail_id', 'service_type', 'service_id', 'service_name',
+                   'amount', 'detail_status', 'detail_method']
+
+class PaymentSerializer(serializers.ModelSerializer):
+    details = PaymentDetailSerializer(many=True, read_only=True)
+    class Meta:
+        model = Payment
+        fields = [
+            'payment_id', 'appointment', 'total_amount', 'payment_status',
+            'payment_type', 'order_code', 'payment_method', 'payment_timestamp', 'details'
         ]

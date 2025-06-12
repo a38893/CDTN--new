@@ -268,7 +268,6 @@ class MedicalRecordAdmin(admin.ModelAdmin):
                 return True
             return obj.appointment.doctor_user_id == request.user
         if request.user.role == 'receptionist':
-            # Chỉ cho phép sửa khi record đang tiến hành
             if obj and obj.record_status == 'đang tiến hành':
                 return True
         return False
@@ -281,7 +280,14 @@ class MedicalRecordAdmin(admin.ModelAdmin):
         # Chỉ admin được xóa
         return request.user.role == 'admin'
     
-
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.role in ['admin', 'receptionist']:
+            return qs
+        elif request.user.role == 'doctor':
+            return qs.filter(appointment__doctor_user_id=request.user)
+        
+        return qs.none()
 
 @admin.register(Medication)
 class MedicationAdmin(admin.ModelAdmin):

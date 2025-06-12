@@ -26,28 +26,29 @@ class OtpUsers(models.Model):
     otp_code = models.CharField(max_length=6, blank=True, null=True)
     otp_created_at = models.DateTimeField(blank=True, null=True)
 
-
+    class Meta:
+        db_table = 'otp_users'
 class User(AbstractBaseUser):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
-        ('receptionist', 'Receptionist'),
-        ('doctor', 'Doctor'),
-        ('patient', 'Patient'),
+        ('receptionist', 'Lễ tân'),
+        ('doctor', 'Bác sĩ'),
+        ('patient', 'Bệnh nhân'),
     ]
-    user_id = models.AutoField(primary_key=True)
-    username = models.CharField(max_length=50, unique=True)
-    password = models.CharField(max_length=128)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
-    status = models.BooleanField( default=False)
-    full_name = models.CharField(max_length=100)
-    gender = models.CharField(max_length=10)
-    address = models.TextField()
-    birth_day = models.DateField()
-    phone = models.CharField(max_length=10, unique= True)
-    gmail = models.EmailField(max_length=100,unique=True)    
-    specialty = models.CharField(max_length=50, blank=True, null=True)
-    degree = models.CharField(max_length=50, blank=True, null=True)
-    img = models.ImageField(upload_to='img/', blank=True, null=True)
+    user_id = models.AutoField(primary_key=True, verbose_name='Mã người dùng')
+    username = models.CharField(max_length=50, unique=True, verbose_name='Tên đăng nhập')
+    password = models.CharField(max_length=128, verbose_name='Mật khẩu')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient', verbose_name='Vai trò')
+    status = models.BooleanField( default=False, verbose_name='Trạng thái hoạt động') 
+    full_name = models.CharField(max_length=100, verbose_name='Họ và tên')
+    gender = models.CharField(max_length=10,choices =[("Nam", "Nam"), ("Nữ", "Nữ"), ("Khác", "Khác")],default= "Nam", verbose_name='Giới tính')
+    address = models.TextField(verbose_name='Địa chỉ')
+    birth_day = models.DateField(verbose_name='Ngày sinh', blank=True, null=True) 
+    phone = models.CharField(max_length=10, unique= True, verbose_name='Số điện thoại')
+    gmail = models.EmailField(max_length=100,unique=True, verbose_name='Email')     
+    specialty = models.CharField(max_length=50, blank=True, null=True, verbose_name='Chuyên khoa')
+    degree = models.CharField(max_length=50, blank=True, null=True, verbose_name='Bằng cấp')
+    img = models.ImageField(upload_to='img/', blank=True, null=True, verbose_name='Ảnh đại diện')
     objects = UserManager()
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['full_name', 'gender', 'address', 'birth_day', 'phone']

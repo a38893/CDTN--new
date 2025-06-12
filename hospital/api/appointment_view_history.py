@@ -18,7 +18,7 @@ class AppointmentHistoryViewAPI(viewsets.ReadOnlyModelViewSet):
     renderer_classes = [renderers.JSONRenderer]
     
     def get_queryset(self):
-        # Chỉ lấy lịch hẹn của người dùng hiện tại
+        # Lấy lịch hẹn của người dùng hiện tại
         return Appointment.objects.select_related('doctor_user_id').filter(
             patient_user_id=self.request.user
         ).order_by('-appointment_day', '-appointment_time')
@@ -63,7 +63,7 @@ class AppointmentHistoryViewAPI(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
             
-    # Thêm action để hủy lịch hẹn
+    # Hủy lịch hẹn
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
         try:
@@ -75,17 +75,19 @@ class AppointmentHistoryViewAPI(viewsets.ReadOnlyModelViewSet):
                     {"message": "Bạn không có quyền hủy lịch hẹn này."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-                
-            # if appointment.appointment_status in ['pending']:
-                appointment.appointment_status = 'cancelled'
-                appointment.save()
+            # không hủy nếu đã hoàn thành 
+            if appointment.appointment_status == 'completed':
                 return Response(
-                    {"message": "Hủy lịch hẹn thành công"},
-                    status=status.HTTP_200_OK
+                    {"message": "Lịch hẹn đã hoàn thành, không thể hủy."},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
+            
+            # Cho phép hủy các trạng thái khác
+            appointment.appointment_status = 'cancelled'
+            appointment.save()
             return Response(
-                {"message": "Không thể hủy lịch hẹn này"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"message": "Hủy lịch hẹn thành công"},
+                status=status.HTTP_200_OK
             )
         except Exception as e:
             return Response(

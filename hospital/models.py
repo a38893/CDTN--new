@@ -258,6 +258,7 @@ class PaymentDetail(models.Model):
     service_id = models.IntegerField(verbose_name='Mã dịch vụ')             
     service_name = models.CharField(max_length=255, verbose_name='Tên dịch vụ') 
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Số tiền')
+    detail_quantity = models.PositiveIntegerField(default=1, verbose_name='Số lượng dịch vụ')
     detail_status = models.CharField(
         max_length=20, verbose_name='Trạng thái chi tiết thanh toán',
         choices=[('unpaid', 'Chưa thanh toán'), ('paid', 'Đã thanh toán')],

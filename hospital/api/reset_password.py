@@ -7,11 +7,12 @@ from rest_framework import status
 from hospital.models import User, OtpUsers
 from hospital.api.gen_otp import gen_otp
 from hospital.sms_otp import send_otp_email
-
+from rest_framework import permissions
 
 
 
 class ResetPasswordAPI(APIView):
+    permission_classes = [permissions.AllowAny]
     def post(self, request):
         username = request.data.get('username')
         gmail = request.data.get('gmail')

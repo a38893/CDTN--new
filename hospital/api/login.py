@@ -8,10 +8,12 @@ from hospital.serializers import LoginSerializer, UserSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from rest_framework import permissions
 
 
 
 class LoginAPI(APIView):
+    permission_classes = [permissions.AllowAny] 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():

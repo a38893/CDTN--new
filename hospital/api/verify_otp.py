@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from django.utils import timezone
 from hospital.models import User, OtpUsers
 from rest_framework import status
-
+from rest_framework import permissions
 
 
 
@@ -13,6 +13,7 @@ from rest_framework import status
 from datetime import timedelta
 
 class VerifyOTP(APIView):
+    permission_classes = [permissions.AllowAny]
     def post(self, request):
         gmail = request.data.get('gmail')
         otp = request.data.get('otp')

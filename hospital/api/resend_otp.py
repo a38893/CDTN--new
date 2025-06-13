@@ -5,11 +5,13 @@ from hospital.sms_otp import send_otp_email
 from hospital.api.gen_otp import *
 from rest_framework.response import Response
 from rest_framework import status
-
+from rest_framework import permissions
 
 
 
 class ResendOTP(APIView):
+    permission_classes = [permissions.AllowAny] 
+
     def post(self, request):
         gmail = request.data.get('gmail')
         try:

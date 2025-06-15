@@ -233,7 +233,7 @@ class Payment(models.Model):
                     break
         super().save(*args, **kwargs)
         if is_new_paid:
-            self.details.update(detail_status='paid', detail_method=self.payment_method)
+            self.details.update(detail_status='paid')
             # Nếu là chuyển khoản và chưa có phương thức thì gán banking
             if not self.payment_method:
                 self.payment_method = 'banking'
@@ -264,7 +264,7 @@ class PaymentDetail(models.Model):
         choices=[('unpaid', 'Chưa thanh toán'), ('paid', 'Đã thanh toán')],
         default='unpaid'
     ) 
-    detail_method = models.CharField(max_length=50, blank=True, null=True, verbose_name='Phương thức thanh toán')
+    # detail_method = models.CharField(max_length=50, blank=True, null=True, verbose_name='Phương thức thanh toán')
     def __str__(self):
         return f"{self.service_name} ({self.amount})"
 

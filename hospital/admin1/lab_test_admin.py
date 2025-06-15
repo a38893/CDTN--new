@@ -1,10 +1,14 @@
 from django.contrib import admin
 from hospital.models import LabTest
-
-
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
+class LabTestResource(resources.ModelResource):
+    class Meta:
+        model = LabTest
 
 @admin.register(LabTest)
-class LabTestAdmin(admin.ModelAdmin):
+class LabTestAdmin(ImportExportModelAdmin):
+    resource_class = LabTestResource
     list_display = ('test_id', 'test_name', 'test_category', 'test_price')
     search_fields = ('test_name', 'test_category')
 

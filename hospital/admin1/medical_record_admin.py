@@ -1,15 +1,44 @@
 from django import forms
 from django.contrib import admin
-from hospital.models import MedicalRecord, PatientTest, Prescription, Appointment, PaymentDetail, Payment
+from hospital.models import MedicalRecord, PatientTest, Prescription, Appointment, PaymentDetail, Payment, Medication
 from django.utils import timezone
 from django.db import models
+from django.core.exceptions import ValidationError
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 
+class MedicalRecordResource(resources.ModelResource):
+    class Meta:
+        model = MedicalRecord
 
+class MedicationChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.medication_name} (Tồn kho: {obj.stock_quantity})"
+class PrescriptionInlineForm(forms.ModelForm):
+    medication = MedicationChoiceField(queryset=Medication.objects.all())
 
+    class Meta:
+        model = Prescription
+        fields = '__all__'
 
-
-
-
+    def clean(self):
+        cleaned_data = super().clean()
+        medication = cleaned_data.get('medication')
+        quantity = cleaned_data.get('prescription_quantity')
+        
+        if medication and quantity is not None:
+            try:
+                quantity = int(quantity)  # Chuyển đổi số lượng thành số nguyên
+                if quantity <= 0:
+                    raise ValidationError("Số lượng kê phải lớn hơn 0.")
+                if quantity > medication.stock_quantity:
+                    raise ValidationError(
+                        f"Số lượng kê ({quantity}) vượt quá tồn kho ({medication.stock_quantity}) của thuốc {medication.medication_name}."
+                    )
+            except (ValueError, TypeError):
+                raise ValidationError("Số lượng kê phải là một số hợp lệ.")
+        
+        return cleaned_data
 class PatientTestInline(admin.TabularInline):
     model = PatientTest
     extra = 1
@@ -27,7 +56,6 @@ class PatientTestInline(admin.TabularInline):
     def save_new_instance(self, form, commit=True):
         obj = super().save_new_instance(form, commit=False)
         request = form.request if hasattr(form, 'request') else None
-        # Nếu đã nhập test_result và performed_by_doctor đang null thì gán user đang đăng nhập
         if request and obj.test_result and obj.performed_by_doctor is None:
             obj.performed_by_doctor = request.user
         if commit:
@@ -37,16 +65,15 @@ class PatientTestInline(admin.TabularInline):
     def save_formset(self, request, form, formset, change):
         instances = formset.save(commit=False)
         for obj in instances:
-            # Nếu đã nhập test_result và performed_by_doctor đang null thì gán user đang đăng nhập
             if obj.test_result and obj.performed_by_doctor is None:
                 obj.performed_by_doctor = request.user
             obj.save()
         formset.save_m2m()
-
 class PrescriptionInline(admin.TabularInline):
     model = Prescription
+    form = PrescriptionInlineForm
+    fields = ('medication', 'prescription_quantity', 'dosage', 'instructions')
     extra = 1
-    autocomplete_fields = ('medication',)
 class MedicalRecordForm(forms.ModelForm):
     class Meta:
         model = MedicalRecord
@@ -54,15 +81,14 @@ class MedicalRecordForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Chỉ set queryset nếu trường 'appointment' có trong form
         if 'appointment' in self.fields:
             qs = Appointment.objects.filter(appointment_status='confirmed').exclude(medical_records__isnull=False)
             if self.instance and self.instance.pk and hasattr(self.instance, 'appointment_id'):
-                # Khi sửa, cho phép chọn lại appointment cũ
                 qs = qs | Appointment.objects.filter(pk=self.instance.appointment_id)
             self.fields['appointment'].queryset = qs
 @admin.register(MedicalRecord)
-class MedicalRecordAdmin(admin.ModelAdmin):
+class MedicalRecordAdmin(ImportExportModelAdmin):
+    resource_class = MedicalRecordResource
     form = MedicalRecordForm
     list_display = ('record_id_display', 'appointment_display', 'record_status_display', 'diagnosis_display', 'treatment_display', 'record_result_display')
     search_fields = ('record_id', 'appointment__appointment_id', 'diagnosis')
@@ -87,45 +113,55 @@ class MedicalRecordAdmin(admin.ModelAdmin):
     def record_id_display(self, obj):
         return obj.record_id
     record_id_display.short_description = 'Mã hồ sơ'
+
     def save_formset(self, request, form, formset, change):
+        if not formset.is_valid():
+            return 
+
         instances = formset.save(commit=False)
+        for obj in instances:
+            if isinstance(obj, Prescription):
+                if obj.prescription_quantity > obj.medication.stock_quantity:
+                    raise ValidationError(
+                        f"Số lượng kê ({obj.prescription_quantity}) vượt quá tồn kho ({obj.medication.stock_quantity}) của thuốc {obj.medication.medication_name}."
+                    )
+                obj.medication.stock_quantity -= obj.prescription_quantity
+                obj.medication.save()
+            obj.save()
+        formset.save_m2m()
+
         details_by_type = {'test': [], 'prescription': []}
         appointment = None
-
         for obj in instances:
-            obj.save()
             appointment = obj.record.appointment
-
             if isinstance(obj, PatientTest):
                 service_type = 'test'
                 service_id = obj.test.test_id
                 service_name = str(obj.test)
                 amount = getattr(obj.test, 'test_price', 0)
-                if PaymentDetail.objects.filter(service_type=service_type, service_id=service_id, detail_status='unpaid', payment__appointment=appointment).exists():
-                    continue
-                details_by_type['test'].append({
-                    'service_type': service_type,
-                    'service_id': service_id,
-                    'service_name': service_name,
-                    'amount': amount,
-                    'detail_quantity': 1
-                })
+                if not PaymentDetail.objects.filter(service_type=service_type, service_id=service_id, detail_status='unpaid', payment__appointment=appointment).exists():
+                    details_by_type['test'].append({
+                        'service_type': service_type,
+                        'service_id': service_id,
+                        'service_name': service_name,
+                        'amount': amount,
+                        'detail_quantity': 1
+                    })
             elif isinstance(obj, Prescription):
                 service_type = 'prescription'
                 service_id = obj.medication.medication_id
                 service_name = f"Thuốc: {obj.medication.medication_name}"
                 amount = getattr(obj.medication, 'medication_price', 0)
                 quantity = getattr(obj, 'prescription_quantity', 1)
-                if PaymentDetail.objects.filter(service_type=service_type, service_id=service_id, detail_status='unpaid', payment__appointment=appointment).exists():
-                    continue
-                details_by_type['prescription'].append({
-                    'service_type': service_type,
-                    'service_id': service_id,
-                    'service_name': service_name,
-                    'amount': amount,
-                    'detail_quantity': quantity
-                })
-        formset.save_m2m()
+                if not PaymentDetail.objects.filter(service_type=service_type, service_id=service_id, detail_status='unpaid', payment__appointment=appointment).exists():
+                    details_by_type['prescription'].append({
+                        'service_type': service_type,
+                        'service_id': service_id,
+                        'service_name': service_name,
+                        'amount': amount,
+                        'detail_quantity': quantity
+                    })
+
 
     # Tạo Payment và PaymentDetail cho từng loại dịch vụ nếu có dịch vụ mới
         for payment_type, details in details_by_type.items():
@@ -150,7 +186,7 @@ class MedicalRecordAdmin(admin.ModelAdmin):
                         detail_status='unpaid'
                     )
 
-        # Cập nhật lại tổng tiền cho các payment đã tồn tại (nếu cần)
+        # Cập nhật lại tổng tiền cho các payment đã tồn tại
         if instances:
             payment_types = set()
             for obj in instances:

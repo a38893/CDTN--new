@@ -1,13 +1,17 @@
 from django.contrib import admin
 from hospital.models import Payment, Appointment
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 
-
-
+class PaymentResource(resources.ModelResource):
+    class Meta:
+        model = Payment
 
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('payment_id', 'appointment', 'total_amount', 'payment_status', 'payment_method', 'payment_timestamp')
-    search_fields = ('appointment__appointment_id', 'payment_status', 'payment_method')
+class PaymentAdmin(ImportExportModelAdmin):
+    resource_class = PaymentResource
+    list_display = ('payment_id', 'appointment', 'total_amount', 'payment_status', 'payment_method', 'payment_timestamp', 'payment_type')
+    search_fields = ('payment_id','appointment__appointment_id', 'payment_status', 'payment_method')
     list_filter = ('payment_status', 'payment_method')
     def has_view_permission(self, request, obj=None):
         # Admin, lễ tân, bác sĩ đều xem được
@@ -38,3 +42,12 @@ class PaymentAdmin(admin.ModelAdmin):
         if obj and obj.payment_status == 'paid':
             return False
         return super().has_delete_permission(request, obj)
+    
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # Nếu là lễ tân, chỉ cho phép chỉnh sửa payment_status (nếu cần logic này, hãy kiểm soát ở form hoặc readonly_fields)
+        # Đồng bộ trạng thái chi tiết thanh toán
+        if obj.payment_status == 'paid':
+            obj.details.update(detail_status='paid')
+        elif obj.payment_status in ['unpaid', 'pending']:
+            obj.details.update(detail_status='unpaid')

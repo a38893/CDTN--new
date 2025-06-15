@@ -1,11 +1,15 @@
 from django.contrib import admin
 from hospital.models import Medication
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 
 
-
-
+class MedicationResource(resources.ModelResource):
+    class Meta:
+        model = Medication
 @admin.register(Medication)
-class MedicationAdmin(admin.ModelAdmin):
+class MedicationAdmin(ImportExportModelAdmin):
+    resource_class = MedicationResource
     list_display = ('medication_id', 'medication_name', 'medication_unit', 'medication_price', 'stock_quantity')
     search_fields = ('medication_name', 'medication_category')
 

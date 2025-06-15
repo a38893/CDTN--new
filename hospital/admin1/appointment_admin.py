@@ -2,10 +2,18 @@
 from django.db import models
 from django.contrib import admin
 from hospital.models import Appointment, User
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
+
+
+class AppointmentResource(resources.ModelResource):
+    class Meta:
+        model = Appointment
 
 
 @admin.register(Appointment)
-class AppointmentAdmin(admin.ModelAdmin):
+class AppointmentAdmin(ImportExportModelAdmin):
+    resource_class = AppointmentResource
     list_display = ('appointment_id', 'patient_user_id', 'doctor_user_id', 'appointment_day', 'appointment_time', 'appointment_status')
     search_fields = ('patient_user_id__username', 'doctor_user_id__username', 'appointment_day', 'appointment_time', 'appointment_id')
 

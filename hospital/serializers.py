@@ -72,7 +72,7 @@ class AppointmentSerializer(serializers.Serializer):
     date = serializers.DateField(required=True)
     time = serializers.TimeField(required=True)
     doctor_user_id = serializers.IntegerField(required=True)
-    description = serializers.CharField(required=False, allow_blank=True)
+    # description = serializers.CharField(required=False, allow_blank=True)
     
     def validate_date(self, value):
         """
@@ -151,7 +151,7 @@ class PaymentDetailSerializer(serializers.Serializer):
     class Meta:
         model = PaymentDetail
         fields = ['detail_id', 'service_type', 'service_id', 'service_name',
-                   'amount', 'detail_status', 'detail_method']
+                   'amount', 'detail_status']
 
 class PaymentSerializer(serializers.ModelSerializer):
     details = PaymentDetailSerializer(many=True, read_only=True)

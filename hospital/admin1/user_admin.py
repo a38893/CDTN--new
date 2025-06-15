@@ -6,7 +6,12 @@ from django.contrib.auth.hashers import make_password
 from hospital.models import Appointment, User
 
 from django import forms
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 
+class UserResource(resources.ModelResource):
+    class Meta:
+        model = User
 
 class UserAdminForm(forms.ModelForm):
     class Meta:
@@ -27,7 +32,8 @@ class UserAdminForm(forms.ModelForm):
         if self.current_user and self.current_user.role == 'receptionist':
             self.fields['role'].choices = [('patient', 'Patient')]
 
-class UsersAdmin(admin.ModelAdmin):
+class UsersAdmin(ImportExportModelAdmin):
+    resource_class = UserResource
     form = UserAdminForm
     list_display = ('user_id', 'username', 'role', 'full_name', 'phone','gmail')
     search_fields= ('username','full_name', 'phone', 'gmail','user_id')

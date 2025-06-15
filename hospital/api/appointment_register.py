@@ -7,26 +7,31 @@ from rest_framework.permissions import IsAuthenticated
 from hospital.models import Appointment, Payment, User
 from hospital.serializers import AppointmentSerializer
 
-
+from rest_framework import permissions
 
 
 
 class AppointmentAPI(APIView):
-    permission_classes = [IsAuthenticated]
-    
+    # permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.AllowAny] 
+
     def get(self, request):
-        """Lấy danh sách bác sĩ cho dropdown chọn"""
         # Lấy tất cả bác sĩ có trạng thái active
         doctors = User.objects.filter(role='doctor', status=True)
         
         # Tạo danh sách bác sĩ với thông tin cần thiết
         doctor_list = []
         for doctor in doctors:
+            if doctor.img:
+                img_url = request.build_absolute_uri(doctor.img.url)
+            else:
+                img_url = None
             doctor_info = {
                 'user_id': doctor.user_id,
                 'full_name': doctor.full_name,
                 'specialty': doctor.specialty,
-                'degree': doctor.degree
+                'degree': doctor.degree,
+                'img' : img_url
             }
             doctor_list.append(doctor_info)
         
@@ -41,7 +46,6 @@ class AppointmentAPI(APIView):
             time = serializer.validated_data['time']
             doctor_user_id = serializer.validated_data['doctor_user_id']
             doctor_user = User.objects.get(user_id=doctor_user_id)
-            description = serializer.validated_data.get('description', '')
             
             try:
                 # Kiểm tra bác sĩ tồn tại và có trạng thái active

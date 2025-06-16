@@ -46,9 +46,6 @@ class User(AbstractBaseUser):
     birth_day = models.DateField(verbose_name='Ngày sinh', blank=True, null=True) 
     phone = models.CharField(max_length=10, unique= True, verbose_name='Số điện thoại')
     gmail = models.EmailField(max_length=100,unique=True, verbose_name='Email')     
-    specialty = models.CharField(max_length=50, blank=True, null=True, verbose_name='Chuyên khoa')
-    degree = models.CharField(max_length=50, blank=True, null=True, verbose_name='Bằng cấp')
-    img = models.ImageField(upload_to='img/', blank=True, null=True, verbose_name='Ảnh đại diện')
     objects = UserManager()
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['full_name', 'gender', 'address', 'birth_day', 'phone']
@@ -79,6 +76,20 @@ class User(AbstractBaseUser):
         db_table = 'users'
         verbose_name = 'Người dùng'    
         verbose_name_plural = 'Người dùng'
+
+class ProfileDoctor(models.Model):
+    profile_id = models.AutoField(primary_key=True, verbose_name='Mã hồ sơ bác sĩ')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'role': 'doctor'}, related_name='doctor_profile')
+    specialty = models.CharField(max_length=50, verbose_name='Chuyên khoa')
+    degree = models.CharField(max_length=50, verbose_name='Bằng cấp')
+    img = models.ImageField(upload_to='img/', blank=True, null=True, verbose_name='Ảnh đại diện')
+
+    def __str__(self):
+        return f"Hồ sơ bác sĩ: {self.user.full_name}"
+    class Meta:
+        db_table = 'profile_doctor'
+        verbose_name = 'Hồ sơ bác sĩ'
+        verbose_name_plural = 'Hồ sơ bác sĩ'
 
 class Appointment(models.Model):
     appointment_id = models.AutoField(primary_key=True, verbose_name='Mã lịch hẹn')
@@ -200,12 +211,12 @@ class Prescription(models.Model):
         return f"Đơn thuốc #{self.prescription_id} - {self.get_prescription_status_display()}"
 
     class Meta:
-        db_table = 'prescription'
+        db_table = 'prescriptions'
         verbose_name = 'Đơn thuốc'    
         verbose_name_plural = 'Đơn thuốc'
 
 class PrescriptionDetail(models.Model):
-    detail_id = models.AutoField(primary_key=True, verbose_name='Mã chi tiết thuốc')
+    detail_p_id = models.AutoField(primary_key=True, verbose_name='Mã chi tiết thuốc')
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='details', verbose_name='Đơn thuốc')
     medication = models.ForeignKey(Medication, on_delete=models.CASCADE, related_name='prescription_details', verbose_name='Thuốc')
     quantity = models.IntegerField(verbose_name='Số lượng')

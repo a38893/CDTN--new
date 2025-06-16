@@ -3,7 +3,7 @@
 from django.contrib import admin
 from django.contrib.auth.hashers import make_password
 
-from hospital.models import Appointment, User
+from hospital.models import Appointment, ProfileDoctor, User
 
 from django import forms
 from import_export import resources
@@ -31,12 +31,32 @@ class UserAdminForm(forms.ModelForm):
         if 'role' in self.fields and self.current_user and self.current_user.role == 'receptionist':
             self.fields['role'].choices = [('patient', 'Patient')]
 
+class ProfileDoctorInline(admin.TabularInline):
+    model = ProfileDoctor
+    can_delete = False
+    verbose_name_plural = 'Thông tin bác sĩ'
+    fk_name = 'user'
+
+    # chỉ cho phép hiển thị inline khi user là bác sĩ
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(user__role='doctor')
+
 class UsersAdmin(ImportExportModelAdmin):
     resource_class = UserResource
     form = UserAdminForm
     list_display = ('user_id', 'username', 'role', 'full_name', 'phone','gmail','status')
     search_fields= ('username','full_name', 'phone', 'gmail','user_id')
     list_filter = ('role',)
+
+    inlines = [ProfileDoctorInline]
+
+
+
+    def get_inline_instances(self, request, obj = ...):
+        if obj and obj.role == 'doctor':
+            return [inline(self.model, self.admin_site) for inline in self.inlines]
+        return []
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         class CustomForm(form):

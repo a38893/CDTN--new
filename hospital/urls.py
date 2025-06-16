@@ -13,6 +13,7 @@ from hospital.api.reset_password import ResetPasswordAPI
 from hospital.api.logout import LogoutAPI
 from hospital.api.update_profile import UserProfileView
 from hospital.api.bill import PaymentListAPI
+from hospital.api.payment_view import PaymentView
 from django.conf import settings
 from django.conf.urls.static import static
 router = DefaultRouter()
@@ -58,7 +59,7 @@ urlpatterns = [
     path('query/',views.query, name='query'),
 
     path('payment/', views.payment, name='payment'),
-
+    path('api/payments/', PaymentView.as_view(), name='payment-list'),
 
     path('payment/<int:payment_id>/', views.payment, name='payment')
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

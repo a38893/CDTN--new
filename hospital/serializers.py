@@ -144,6 +144,12 @@ class MedicalRecordDetailSerializer(serializers.ModelSerializer):
             'patient_tests', 'prescriptions'
         ]
 
+class PaymentViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = '__all__'
+
+
 
 class PaymentDetailSerializer(serializers.Serializer):
     class Meta:

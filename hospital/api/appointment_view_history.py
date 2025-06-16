@@ -84,7 +84,7 @@ class AppointmentHistoryViewAPI(viewsets.ReadOnlyModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Cho phép hủy các trạng thái khác
+            # Cho phép hủy các trạng thái
             appointment.appointment_status = 'cancelled'
             appointment.save()
             return Response(

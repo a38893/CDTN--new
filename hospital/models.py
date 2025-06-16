@@ -135,7 +135,7 @@ class PatientTest(models.Model):
     record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='patient_tests', verbose_name='Hồ sơ bệnh án')
     test = models.ForeignKey('LabTest', on_delete=models.CASCADE, related_name='patient_tests', verbose_name='Xét nghiệm')
     test_result = models.TextField(blank=True, null=True, verbose_name='Kết quả xét nghiệm')
-    test_date = models.DateField(verbose_name='Ngày xét nghiệm')
+    test_date = models.DateField(verbose_name='Ngày xét nghiệm', null=True, blank=True)
     test_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending', verbose_name='Trạng thái xét nghiệm')
     performed_by_doctor = models.ForeignKey(User, on_delete=models.CASCADE,null = True, blank= True, related_name='performed_tests', verbose_name='Bác sĩ thực hiện xét nghiệm')
 
@@ -175,7 +175,7 @@ class Medication(models.Model):
     medication_category = models.CharField(max_length=100, verbose_name='Loại thuốc')
 
     def __str__(self):
-        return self.medication_name
+        return f"{self.medication_name} | Tồn kho: {self.stock_quantity} | Đơn vị: {self.medication_unit} | Liều khuyến nghị: {self.recommended_dosage}"
 
     class Meta:
         db_table = 'medications'
@@ -185,20 +185,39 @@ class Medication(models.Model):
 class Prescription(models.Model):
     prescription_id = models.AutoField(primary_key=True, verbose_name='Mã đơn thuốc') 
     record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='prescriptions',   verbose_name='Hồ sơ bệnh án')
-    medication = models.ForeignKey(Medication, on_delete=models.CASCADE, related_name='prescriptions', verbose_name='Thuốc')
-    duration = models.CharField(max_length=128, verbose_name='Thời gian sử dụng')  
-    dosage = models.CharField(max_length=50, verbose_name='Liều lượng sử dụng')
-    prescription_quantity = models.IntegerField(verbose_name='Số lượng thuốc')
-    instructions = models.TextField(verbose_name='Hướng dẫn sử dụng')
-    frequency = models.CharField(max_length=50, verbose_name='Tần suất sử dụng')
+    prescription_status = models.CharField(       
+        max_length=20, verbose_name='Trạng thái đơn thuốc',
+        choices=[
+            ('unpaid', 'Chưa thanh toán'),
+            ('paid', 'Đã thanh toán'),
+            ('completed', 'Đã nhận (hoàn tất)')
+        ],
+        default='unpaid'
+    )
+    instructions = models.TextField(verbose_name='Lời dặn của bác sĩ')
 
     def __str__(self):
-        return f"Prescription {self.prescription_id}"
+        return f"Đơn thuốc #{self.prescription_id} - {self.get_prescription_status_display()}"
 
     class Meta:
         db_table = 'prescription'
         verbose_name = 'Đơn thuốc'    
         verbose_name_plural = 'Đơn thuốc'
+
+class PrescriptionDetail(models.Model):
+    detail_id = models.AutoField(primary_key=True, verbose_name='Mã chi tiết thuốc')
+    prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='details', verbose_name='Đơn thuốc')
+    medication = models.ForeignKey(Medication, on_delete=models.CASCADE, related_name='prescription_details', verbose_name='Thuốc')
+    quantity = models.IntegerField(verbose_name='Số lượng')
+    dosage = models.CharField(max_length=50, verbose_name='Liều dùng')
+
+    def __str__(self):
+        return f"{self.medication.medication_name} ({self.quantity} {self.medication.medication_unit})"
+
+    class Meta:
+        db_table = 'prescription_details'
+        verbose_name = 'Chi tiết thuốc'    
+        verbose_name_plural = 'Chi tiết thuốc'
         
 class Payment(models.Model):
     payment_id = models.AutoField(primary_key=True, verbose_name='Mã hóa đơn thanh toán')

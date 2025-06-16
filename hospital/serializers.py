@@ -75,21 +75,19 @@ class AppointmentSerializer(serializers.Serializer):
     # description = serializers.CharField(required=False, allow_blank=True)
     
     def validate_date(self, value):
-        """
-        Kiểm tra ngày hẹn không được là ngày trong quá khứ
-        """
+    
+        # Kiểm tra ngày hẹn không được là ngày trong quá khứ
+
         today = timezone.now().date()
         if value < today:
             raise serializers.ValidationError("Ngày hẹn không thể là ngày trong quá khứ!")
         return value
     
     def validate_time(self, value):
-        """
-        Kiểm tra giờ hẹn phải trong giờ làm việc (8:00 - 17:00)
-        """
-        # Chuyển đổi thành datetime.time để so sánh
-        start_time = time(8, 0)  # 8:00 AM
-        end_time = time(17, 0)   # 5:00 PM
+        
+        # Kiểm tra giờ hẹn phải trong giờ làm việc
+        start_time = time(8, 0)  
+        end_time = time(17, 0)   
         
         if value < start_time or value > end_time:
             raise serializers.ValidationError("Giờ hẹn phải trong khoảng 8:00 - 17:00!")
@@ -115,7 +113,7 @@ class AppointmentHistoryViewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Appointment
-        fields = ['appointment_id', 'patient', 'doctor', 'appointment_day', 'appointment_time', 'appointment_status', 'description']
+        fields = ['appointment_id', 'patient', 'doctor', 'appointment_day', 'appointment_time', 'appointment_status']
         
 class PatientTestSerializer(serializers.ModelSerializer):
     test_name = serializers.CharField(source='test.test_name', read_only=True)
@@ -123,7 +121,7 @@ class PatientTestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PatientTest
-        fields = ['patient_test_id', 'test_id', 'test_name', 'result', 'test_date', 'status']
+        fields = ['patient_test_id', 'test_id', 'test_name','test_status','test_result',  'test_date']
 class PrescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prescription
@@ -132,7 +130,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
 class MedicalRecordListSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicalRecord
-        fields = ['record_id', 'appointment', 'diagnosis', 'treatment', 'result', 'record_note']
+        fields = ['record_id', 'appointment', 'diagnosis', 'treatment', 'record_result', 'record_note']
 
 class MedicalRecordDetailSerializer(serializers.ModelSerializer):
 
@@ -142,7 +140,7 @@ class MedicalRecordDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicalRecord
         fields = [
-            'record_id', 'appointment', 'diagnosis', 'treatment', 'result', 'record_note',
+            'record_id', 'appointment', 'diagnosis', 'treatment', 'record_result', 'record_note',
             'patient_tests', 'prescriptions'
         ]
 

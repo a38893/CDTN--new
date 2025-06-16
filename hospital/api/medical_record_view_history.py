@@ -12,7 +12,8 @@ from rest_framework import  viewsets, permissions
 
 
 class MedicalRecordHistoryViewAPI(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny] 
 
     def get_queryset(self):
         return MedicalRecord.objects.filter(

@@ -4,8 +4,11 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from rest_framework import permissions
 class LogoutAPI(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.AllowAny] 
+
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
         refresh_token = request.data.get("refresh")

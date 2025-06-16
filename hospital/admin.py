@@ -13,6 +13,6 @@ from hospital.admin1.medication_admin import *
 from hospital.admin1.medical_record_admin import *
 from hospital.admin1.lab_test_admin import *
 from hospital.admin1.appointment_admin import *
-
+from hospital.admin1.prescription_detail_admin import *
 admin.site.site_header = "Quản lý bệnh viện LHM"
 

@@ -158,8 +158,10 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-VNPAY_RETURN_URL = 'http://localhost:8000/payment_return/'  # get from config
-VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'  # get from config
+VNPAY_RETURN_URL = 'http://localhost:8000/payment_return/'  
+VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'  
 VNPAY_API_URL = 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction'
-VNPAY_TMN_CODE = 'WOEINPH7'  # Website ID in VNPAY System, get from config
-VNPAY_HASH_SECRET_KEY = 'OB0MOE79T0M35GJAPJBSW6KLFTKWTMVL'  # Secret key for create checksum,get from config
+VNPAY_TMN_CODE = '0ZE53AQG'  
+VNPAY_HASH_SECRET_KEY = 'U89C105M6Q347VMKQOUW0JSGDXIVO8BA'  
+# Lỗi sai chữ ký do secret key và tmn code không đúng
+

@@ -21,21 +21,20 @@ class UserAdminForm(forms.ModelForm):
     def clean_role(self):
         role = self.cleaned_data.get('role')
         user = self.current_user
-
         if user.role == 'receptionist' and role != 'patient':
-            raise forms.ValidationError("Lễ tân chỉ tạo được tài khoản với vai trò lễ tân!")
+            raise forms.ValidationError("Lễ tân chỉ thao tác với tài khoản vai trò bệnh nhân!")
         return role
     
     def __init__(self, *args, **kwargs):
         self.current_user = kwargs.pop('current_user', None)
         super().__init__(*args, **kwargs)
-        if self.current_user and self.current_user.role == 'receptionist':
+        if 'role' in self.fields and self.current_user and self.current_user.role == 'receptionist':
             self.fields['role'].choices = [('patient', 'Patient')]
 
 class UsersAdmin(ImportExportModelAdmin):
     resource_class = UserResource
     form = UserAdminForm
-    list_display = ('user_id', 'username', 'role', 'full_name', 'phone','gmail')
+    list_display = ('user_id', 'username', 'role', 'full_name', 'phone','gmail','status')
     search_fields= ('username','full_name', 'phone', 'gmail','user_id')
     list_filter = ('role',)
     def get_form(self, request, obj=None, **kwargs):
@@ -52,12 +51,22 @@ class UsersAdmin(ImportExportModelAdmin):
             obj.password = make_password(raw_password)
         super().save_model(request, obj, form, change)
     
+    def get_search_results(self, request, queryset, search_term):
+        # Nếu autocomplete cho trường bệnh nhân
+        if request.GET.get('field_name') == 'patient_user_id':
+            queryset = queryset.filter(role='patient')
+        # Nếu autocomplete cho trường bác sĩ
+        if request.GET.get('field_name') == 'doctor_user_id':
+            queryset = queryset.filter(role='doctor')
+        return super().get_search_results(request, queryset, search_term)
+
+
 
     def has_view_permission(self, request, obj=None):
         return request.user.role in ['admin', 'receptionist']
 
     def has_change_permission(self, request, obj=None):
-        return request.user.role == 'admin'
+        return request.user.role in ['admin', 'receptionist']
 
     def has_delete_permission(self, request, obj=None):
         return request.user.role == 'admin'

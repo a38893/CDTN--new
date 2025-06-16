@@ -190,7 +190,7 @@ class Prescription(models.Model):
         choices=[
             ('unpaid', 'Chưa thanh toán'),
             ('paid', 'Đã thanh toán'),
-            ('completed', 'Đã nhận (hoàn tất)')
+            ('done', 'Đã nhận (hoàn tất)')
         ],
         default='unpaid'
     )
@@ -209,7 +209,7 @@ class PrescriptionDetail(models.Model):
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='details', verbose_name='Đơn thuốc')
     medication = models.ForeignKey(Medication, on_delete=models.CASCADE, related_name='prescription_details', verbose_name='Thuốc')
     quantity = models.IntegerField(verbose_name='Số lượng')
-    dosage = models.CharField(max_length=50, verbose_name='Liều dùng')
+    dosage = models.CharField(max_length=100, verbose_name='Liều dùng')
 
     def __str__(self):
         return f"{self.medication.medication_name} ({self.quantity} {self.medication.medication_unit})"

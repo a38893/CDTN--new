@@ -16,7 +16,6 @@ class ResendOTP(APIView):
         gmail = request.data.get('gmail')
         try:
             user = User.objects.get(gmail=gmail)
-            # Sinh OTP mới
             otp = gen_otp()
             otp_obj, created = OtpUsers.objects.get_or_create(user=user)
             otp_obj.otp_code = otp

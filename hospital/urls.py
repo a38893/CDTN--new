@@ -25,7 +25,8 @@ router = DefaultRouter()
 router.register(r'appointments', AppointmentHistoryViewAPI, basename='appointment')
 
 
-# xem lịch sử hồ sơ y tế http://127.0.0.1:8000/api/medical-records/
+# xem lịch sử hồ sơ y tế http://127.0.0.1:8000/api/medical-records/ (GET)
+# xem chi tiết http://127.0.0.1:8000/api/medical-records/record_id/ (GET)
 router.register(r'medical-records', MedicalRecordHistoryViewAPI, basename='medical-record')
 urlpatterns = [
     # đăng ký tài khoản
@@ -50,15 +51,13 @@ urlpatterns = [
     # đổi mật khẩu
     path('api/change-password/', ChangePasswordAPI.as_view(), name='change_password'),
     path('api/', include(router.urls)),
-    # path('', home, name='home'),
     path('api/reset-password/', ResetPasswordAPI.as_view(), name='reset_password'),
 
-    # path('pay/', views.index, name='index'),
-    # path('payment/', views.payment, name='payment'),
     path('payment_ipn/', views.payment_ipn, name='payment_ipn'),
     path('payment_return/',views.payment_return, name='payment_return'),
     path('query/',views.query, name='query'),
 
+    path('payment/', views.payment, name='payment'),
 
 
     path('payment/<int:payment_id>/', views.payment, name='payment')

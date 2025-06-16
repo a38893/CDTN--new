@@ -13,7 +13,7 @@ from django.shortcuts import render, redirect
 import urllib.parse
 
 from hospital.forms import PaymentForm
-from hospital.models import Appointment, Payment, PaymentDetail
+from hospital.models import Appointment, Payment, PaymentDetail, Prescription
 from hospital.vnpay import vnpay
 
 
@@ -23,98 +23,28 @@ def hmacsha512(key, data):
     byteKey = key.encode('utf-8')
     byteData = data.encode('utf-8')
     return hmac.new(byteKey, byteData, hashlib.sha512).hexdigest()
-def payment(request, payment_id=None):
-    if request.method == 'GET':
-        if not payment_id:
-            return render(request, "payment/payment.html", {
-                "title": "Thanh toán",
-                "error": "Không tìm thấy hóa đơn cần thanh toán."
-            })
-        try:
-            payment = Payment.objects.get(pk=payment_id, payment_status__in=['unpaid', 'pending'])
-            appointment = payment.appointment
 
-            # Nếu là đặt cọc và chưa có PaymentDetail thì tạo mới
-            if payment.payment_type == 'deposit' and not payment.details.exists():
-                PaymentDetail.objects.create(
-                    payment=payment,
-                    service_type='deposit',
-                    service_id=0,
-                    service_name='Đặt cọc lịch hẹn',
-                    amount=30000,
-                    detail_status='unpaid'
-                )
-        except Payment.DoesNotExist:
-            return render(request, "payment/payment.html", {
-                "title": "Thanh toán",
-                "error": "Không có hóa đơn chưa thanh toán với mã này."
-            })
-        return render(request, "payment/payment.html", {
-            "title": "Thanh toán",
-            "appointment": appointment,
-            "amount": payment.total_amount,
-            "payment_type": payment.payment_type,
-            "payment": payment
-        })
+def payment(request, payment_id):
+    payment = Payment.objects.get(pk=payment_id)
+    vnp = vnpay()
+    vnp.requestData = {
+        'vnp_Version': '2.1.0',
+        'vnp_Command': 'pay',
+        'vnp_TmnCode': settings.VNPAY_TMN_CODE,
+        'vnp_Amount': int(payment.total_amount * 100),
+        'vnp_CurrCode': 'VND',
+        'vnp_TxnRef': payment.order_code,
+        'vnp_OrderInfo': f"Thanh toán đơn hàng #{payment.order_code}",
+        'vnp_OrderType': 'billpayment',
+        'vnp_Locale': 'vn',
+        'vnp_ReturnUrl': settings.VNPAY_RETURN_URL,
+        'vnp_CreateDate': datetime.now().strftime('%Y%m%d%H%M%S'),
+        'vnp_IpAddr': get_client_ip(request),
+    }
+    vnpay_payment_url = vnp.get_payment_url(settings.VNPAY_PAYMENT_URL, settings.VNPAY_HASH_SECRET_KEY)
+    return redirect(vnpay_payment_url)
 
-    if request.method == 'POST':
-        bank_code = request.POST.get('bank_code', '')
-        language = request.POST.get('language', 'vn')
-        ipaddr = get_client_ip(request)
-        payment_id = request.POST.get('payment_id')
 
-        try:
-            payment = Payment.objects.get(pk=payment_id, payment_status__in=['unpaid', 'pending'])
-            appointment = payment.appointment
-            # Nếu là đặt cọc và chưa có PaymentDetail thì tạo mới
-            if payment.payment_type == 'deposit' and not payment.details.exists():
-                try:
-                    PaymentDetail.objects.create(
-                        payment=payment,
-                        service_type='deposit',
-                        service_id=0,
-                        service_name='Đặt cọc lịch hẹn',
-                        amount=30000,
-                        detail_status='unpaid'
-                    )
-                    print("Đã tạo PaymentDetail cho đặt cọc")
-                except Exception as e:
-                    print("Lỗi tạo PaymentDetail:", e)
-        except Payment.DoesNotExist:
-            print("Lỗi tạo paymentdetail:", payment_id)
-            return render(request, "payment/payment.html", {
-                "title": "Thanh toán",
-                "error": "Không có hóa đơn chưa thanh toán với mã này."
-            })
-
-        amount = payment.total_amount
-        order_desc = f"Thanh toán {payment.get_payment_type_display()} cho lịch hẹn #{appointment.appointment_id}"
-        order_type = "billpayment"
-
-        vnp = vnpay()
-        vnp.requestData['vnp_Version'] = '2.1.0'
-        vnp.requestData['vnp_Command'] = 'pay'
-        vnp.requestData['vnp_TmnCode'] = settings.VNPAY_TMN_CODE
-        vnp.requestData['vnp_Amount'] = int(amount * 100)
-        vnp.requestData['vnp_CurrCode'] = 'VND'
-        vnp.requestData['vnp_TxnRef'] = payment.order_code
-        vnp.requestData['vnp_OrderInfo'] = order_desc
-        vnp.requestData['vnp_OrderType'] = order_type
-        vnp.requestData['vnp_Locale'] = language if language else 'vn'
-        if bank_code:
-            vnp.requestData['vnp_BankCode'] = bank_code
-
-        vnp_create_date = datetime.now().strftime('%Y%m%d%H%M%S')
-        vnp.requestData['vnp_CreateDate'] = vnp_create_date
-        vnp.requestData['vnp_IpAddr'] = ipaddr
-        vnp.requestData['vnp_ReturnUrl'] = settings.VNPAY_RETURN_URL
-
-        # Lưu lại vnp_create_date vào payment
-        payment.vnp_create_date = vnp_create_date
-        payment.save()
-
-        vnpay_payment_url = vnp.get_payment_url(settings.VNPAY_PAYMENT_URL, settings.VNPAY_HASH_SECRET_KEY)
-        return redirect(vnpay_payment_url)
 def payment_ipn(request):
     inputData = request.GET
     if inputData:
@@ -174,6 +104,7 @@ def payment_return(request):
                 if payment:
                     payment.payment_status = 'paid'
                     payment.payment_method = 'banking'
+                    payment.vnp_create_date = inputData.get('vnp_PayDate', datetime.now().strftime('%Y%m%d%H%M%S'))
                     payment.save()
                     
                     # Cập nhật tất cả PaymentDetail liên quan
@@ -181,6 +112,9 @@ def payment_return(request):
                     appointment = payment.appointment
                     appointment.appointment_status = 'confirmed'
                     appointment.save()
+
+                    if payment.payment_type == 'prescription':
+                        Prescription.objects.filter(record__appointment=appointment).update(prescription_status='paid')
             else:
                 result = "Thất bại"
         else:

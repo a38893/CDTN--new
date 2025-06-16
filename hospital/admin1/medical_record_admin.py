@@ -46,6 +46,7 @@ class PrescriptionInline(admin.TabularInline):
     extra = 1
     fields = ( 'prescription_status','instructions' )
     show_change_link = True
+    readonly_fields = ('prescription_status',)
 
 @admin.register(MedicalRecord)
 class MedicalRecordAdmin(ImportExportModelAdmin):
@@ -93,7 +94,7 @@ class MedicalRecordAdmin(ImportExportModelAdmin):
             obj.save()
         formset.save_m2m()
 
-        details_by_type = {'test': [], 'prescription': []}
+        details_by_type = {'test': []}
         appointment = None
         for obj in instances:
             appointment = obj.record.appointment

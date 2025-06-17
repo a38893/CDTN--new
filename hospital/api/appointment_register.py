@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-
+from hospital.degree_exam_fee import  degree_exam_fee
 from hospital.models import Appointment, Payment, User
 from hospital.serializers import AppointmentSerializer
 from rest_framework import permissions
@@ -32,12 +32,15 @@ class AppointmentAPI(APIView):
             specialty_val = getattr(profile, 'specialty', None)
             degree = getattr(profile, 'degree', None)
             img_url = profile.img.url if profile and profile.img else None
-
+            exam_fee = degree_exam_fee.get(degree, 0) 
+            exam_fee_discount = int(exam_fee * 0.85) 
             doctor_info = {
                 'user_id': doctor.user_id,
                 'full_name': doctor.full_name,
                 'specialty': specialty_val,
                 'degree': degree,
+                'exam_fee': exam_fee,
+                'exam_fee_discount': exam_fee_discount,
                 'img': img_url
             }
             doctor_list.append(doctor_info)
@@ -62,9 +65,9 @@ class AppointmentAPI(APIView):
                     doctor_user_id=doctor,
                     appointment_day=date,
                     appointment_time=time,
-                    appointment_status__in=['scheduled', 'confirmed']
+                    appointment_status__in=['confirmed', 'pending']
                 ).exists()
-                
+                # Kiểm tra xem bác sĩ có lịch hẹn nào vào ngày và giờ này chưa
                 if existing_appointment:
                     return Response({
                         "message": "Bác sĩ đã có lịch hẹn vào thời gian này. Vui lòng chọn thời gian khác!"
@@ -76,6 +79,7 @@ class AppointmentAPI(APIView):
                     doctor_user_id=doctor,
                     appointment_day=date,
                     appointment_time=time,
+                    appointment_status='unpaid_deposit' 
                 )
                 Payment.objects.create(
                     appointment=appointment,

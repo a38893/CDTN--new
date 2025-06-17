@@ -110,7 +110,11 @@ def payment_return(request):
                     # Cập nhật tất cả PaymentDetail liên quan
                     payment.details.update(detail_status='paid')
                     appointment = payment.appointment
-                    appointment.appointment_status = 'confirmed'
+
+                    if payment.payment_type == 'deposit':
+                        appointment.appointment_status = 'pending'
+                    elif payment.payment_type == 'exam':
+                        appointment.appointment_status = 'full'
                     appointment.save()
 
                     if payment.payment_type == 'prescription':

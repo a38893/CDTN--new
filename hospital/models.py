@@ -96,11 +96,13 @@ class Appointment(models.Model):
     patient_user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_patient', verbose_name='Người dùng bệnh nhân')
     doctor_user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_doctor', verbose_name='Người dùng bác sĩ')
     appointment_day = models.DateField(default=date.today, verbose_name='Ngày hẹn')
-    appointment_status = models.CharField(max_length=20, default='pending', verbose_name='Trạng thái lịch hẹn', choices=[
-        ('pending', 'Đang chờ'),
+    appointment_status = models.CharField(max_length=20, default='unpaid_deposit', verbose_name='Trạng thái lịch hẹn', choices=[
+        ('pending', 'Đã đặt cọc'), 
         ('confirmed', 'Đã xác nhận'),
         ('cancelled', 'Đã hủy'),
-        ('completed', 'Đã hoàn thành')])
+        ('unpaid_deposit', 'Chưa đặt cọc'),
+        ('full', 'Đang tiến hành'),
+        ('done', 'Đã hoàn thành')])
     appointment_time = models.TimeField(default=time(12, 0), verbose_name='Giờ hẹn')
     appointment_created_at = models.DateTimeField(auto_now_add=True, verbose_name='Ngày tạo lịch hẹn')
     appointment_updated_at = models.DateTimeField(auto_now=True, verbose_name='Ngày cập nhật lịch hẹn')
@@ -239,7 +241,7 @@ class Payment(models.Model):
         choices=[('unpaid', 'Chưa thanh toán'), ('paid', 'Đã thanh toán')],
         default='unpaid'
     )
-    payment_type = models.CharField(max_length=20, choices=[('test', 'Xét nghiệm'), ('prescription', 'thuốc'), ('deposit', 'Đặt cọc')], default='deposit', blank=True, null=True, verbose_name='Loại thanh toán')
+    payment_type = models.CharField(max_length=20, choices=[('test', 'Xét nghiệm'), ('prescription', 'thuốc'), ('deposit', 'Đặt cọc'), ('exam', 'Tiền khám')], default='deposit', blank=True, null=True, verbose_name='Loại thanh toán')
     order_code = models.CharField(max_length=20, unique=True, verbose_name='Mã đơn hàng') 
     payment_method = models.CharField(choices=[('banking', 'Chuyển khoản'),('cash', 'Tiền mặt')] ,max_length=50, blank=True, null=True, verbose_name='Phương thức thanh toán')
     payment_timestamp = models.DateTimeField(auto_now_add=True, verbose_name='Thời gian thanh toán')

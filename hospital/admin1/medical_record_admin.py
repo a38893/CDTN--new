@@ -125,8 +125,13 @@ class MedicalRecordAdmin(ImportExportModelAdmin):
                     detail_status='unpaid'
                 )
 
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        queryset = queryset.filter(appointment_status='full')
+        return queryset, use_distinct
 
-        def has_view_permission(self, request, obj=None):
+
+    def has_view_permission(self, request, obj=None):
             # Admin và lễ tân đều xem được, bác sĩ cũng xem được nếu là bác sĩ của record
             return request.user.role in ['admin', 'receptionist', 'doctor']
 

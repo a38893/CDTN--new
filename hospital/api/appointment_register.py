@@ -7,28 +7,44 @@ from hospital.degree_exam_fee import  degree_exam_fee
 from hospital.models import Appointment, Payment, User
 from hospital.serializers import AppointmentSerializer
 from rest_framework import permissions
+from datetime import datetime, time, timedelta
+
+def generate_time_slots():
+    slots = []
+    # Buổi sáng
+    start = datetime.strptime("08:00", "%H:%M")
+    end = datetime.strptime("11:45", "%H:%M")
+    while start <= end:
+        slots.append(start.time())
+        start += timedelta(minutes=15)
+    # Buổi chiều
+    start = datetime.strptime("13:30", "%H:%M")
+    end = datetime.strptime("16:45", "%H:%M")
+    while start <= end:
+        slots.append(start.time())
+        start += timedelta(minutes=15)
+    return slots
+
+def is_valid_appointment_time(appointment_time):
+    valid_slots = generate_time_slots()
+    return appointment_time in valid_slots
 
 class AppointmentAPI(APIView):
-    # permission_classes = [IsAuthenticated]
     permission_classes = [permissions.AllowAny] 
 
     def get(self, request):
-        # Lọc theo chuyên khoa
         specialty = request.GET.get('specialty')
         if specialty:
             doctors = User.objects.filter(
                 role='doctor',
                 status=True,
                 doctor_profile__specialty__iexact=specialty 
-                # không phân biệt chữ hoa chữ thường
             )
         else:
             doctors = User.objects.filter(role='doctor', status=True)
-        # Tạo danh sách bác sĩ với thông tin cần thiết
         doctor_list = []
         for doctor in doctors:
             profile = getattr(doctor, 'doctor_profile', None)
-            print('Doctor:', doctor.user_id, 'Profile:', profile)
             specialty_val = getattr(profile, 'specialty', None)
             degree = getattr(profile, 'degree', None)
             img_url = profile.img.url if profile and profile.img else None
@@ -53,32 +69,39 @@ class AppointmentAPI(APIView):
         serializer = AppointmentSerializer(data=request.data)
         if serializer.is_valid():
             date = serializer.validated_data['date']
-            time = serializer.validated_data['time']
+            time_str = serializer.validated_data['time']
+            if isinstance(time_str, str):
+                try:
+                    time_obj = datetime.strptime(time_str, "%H:%M").time()
+                except Exception:
+                    return Response({"message": "Định dạng giờ không hợp lệ. Đúng dạng HH:MM."}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                time_obj = time_str
+
+            # Kiểm tra giờ hợp lệ
+            if not is_valid_appointment_time(time_obj):
+                return Response({
+                    "message": "Chỉ được đặt lịch theo khung giờ cách 15 phút"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             doctor_user_id = serializer.validated_data['doctor_user_id']
-            
             try:
-                # Kiểm tra bác sĩ tồn tại và có trạng thái active
                 doctor = User.objects.get(user_id=doctor_user_id, role='doctor', status=True)
-                
-                # Kiểm tra xem bác sĩ có lịch trùng không
                 existing_appointment = Appointment.objects.filter(
                     doctor_user_id=doctor,
                     appointment_day=date,
-                    appointment_time=time,
+                    appointment_time=time_obj,
                     appointment_status__in=['confirmed', 'pending']
                 ).exists()
-                # Kiểm tra xem bác sĩ có lịch hẹn nào vào ngày và giờ này chưa
                 if existing_appointment:
                     return Response({
                         "message": "Bác sĩ đã có lịch hẹn vào thời gian này. Vui lòng chọn thời gian khác!"
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
-                # Tạo lịch hẹn mới
                 appointment = Appointment.objects.create(
                     patient_user_id=request.user,
                     doctor_user_id=doctor,
                     appointment_day=date,
-                    appointment_time=time,
+                    appointment_time=time_obj,
                     appointment_status='unpaid_deposit' 
                 )
                 Payment.objects.create(
@@ -87,20 +110,16 @@ class AppointmentAPI(APIView):
                     payment_status='unpaid',  
                     payment_method=''  
                 )
-                
                 return Response({
                     "message": "Đã đăng kí lịch hẹn, vui lòng đặt cọc để hoàn tất!",
                     "appointment_id": appointment.appointment_id,
                 }, status=status.HTTP_201_CREATED)
-                
             except User.DoesNotExist:
                 return Response({
                     "message": "Bác sĩ không tồn tại hoặc không hoạt động!"
                 }, status=status.HTTP_400_BAD_REQUEST)
-                
             except ValueError as e:
                 return Response({
                     "message": f"Lỗi: {str(e)}"
                 }, status=status.HTTP_400_BAD_REQUEST)
-                
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

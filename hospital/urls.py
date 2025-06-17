@@ -13,6 +13,7 @@ from hospital.api.reset_password import ResetPasswordAPI
 from hospital.api.logout import LogoutAPI
 from hospital.api.update_profile import UserProfileView
 from hospital.api.bill import PaymentListAPI
+from hospital.api.specialty import SpecialtyListAPI
 from django.conf import settings
 from django.conf.urls.static import static
 router = DefaultRouter()
@@ -47,7 +48,7 @@ urlpatterns = [
 
     # gửi lại OTP
     path('api/resend-otp/', ResendOTP.as_view(), name='resend_otp'),
-
+    path('api/specialties/', SpecialtyListAPI.as_view(), name='specialty_list_api'),
     # đổi mật khẩu
     path('api/change-password/', ChangePasswordAPI.as_view(), name='change_password'),
     path('api/', include(router.urls)),

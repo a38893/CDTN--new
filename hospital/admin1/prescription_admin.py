@@ -14,7 +14,20 @@ class PrescriptionDetailInlineForm(forms.ModelForm):
         model = PrescriptionDetail
         fields = '__all__'
 
+    def has_add_permission(self, request, obj):
+        if obj and obj.prescription_status == 'done':
+            return False
+        return super().has_add_permission(request, obj)
 
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.prescription_status == 'done':
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.prescription_status == 'done':
+            return False
+        return super().has_delete_permission(request, obj)
     def clean(self):
         cleaned_data = super().clean()
         medication = cleaned_data.get('medication')
@@ -107,9 +120,14 @@ class PrescriptionAdmin(ImportExportModelAdmin):
 # Khi thanh toán thành công chỉ có thể update trạng thái sang done
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        if obj and obj.prescription_status in ['paid','done']:
+        if obj and obj.prescription_status in ['paid']:
             form.base_fields['prescription_status'].choices = [
                 ('paid', 'Đã thanh toán'),
                 ('done', 'Đã xong (hoàn tất)'),
             ]
         return form
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.prescription_status  =='done':
+            return [f.name for f in self.model._meta.fields if f.name != 'prescription_id']
+        return super().get_readonly_fields(request, obj)

@@ -16,7 +16,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, username, password=None, **extra_fields):
         extra_fields.setdefault('role', 'admin')
-        extra_fields.setdefault('status', 'active')
+        extra_fields.setdefault('status', True)
         return self.create_user(username, password, **extra_fields)
 
 class OtpUsers(models.Model):
@@ -87,7 +87,7 @@ class ProfileDoctor(models.Model):
     def __str__(self):
         return f"Hồ sơ bác sĩ: {self.user.full_name}"
     class Meta:
-        db_table = 'profile_doctor'
+        db_table = 'profile_doctors'
         verbose_name = 'Hồ sơ bác sĩ'
         verbose_name_plural = 'Hồ sơ bác sĩ'
 
@@ -272,6 +272,10 @@ class Payment(models.Model):
             medical_record = getattr(self.appointment, 'medical_records', None)
             if medical_record:
                 medical_record.patient_tests.filter(test_status='Pending').update(test_status='In Progress')
+        if self.payment_type == 'prescription' and is_new_paid:
+            from hospital.models import Prescription
+            prescriptions = Prescription.objects.filter(record__appointment=self.appointment)
+            prescriptions.update(prescription_status='paid')
     def __str__(self):
         return f"Hóa đơn #{self.payment_id} - {self.get_payment_status_display()}"
 

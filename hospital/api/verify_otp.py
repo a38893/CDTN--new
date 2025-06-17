@@ -23,7 +23,7 @@ class VerifyOTP(APIView):
             if otp_obj and otp_obj.otp_created_at and timezone.now() - otp_obj.otp_created_at < timedelta(minutes=5):
                 user.status = True
                 user.save()
-                otp_obj.is_phone_verified = True
+                otp_obj.is_verified = True
                 otp_obj.otp_code = None
                 otp_obj.save()
                 return Response({"message": "Xác thực thành công!"}, status=status.HTTP_200_OK)

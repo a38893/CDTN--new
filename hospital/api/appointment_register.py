@@ -6,32 +6,39 @@ from rest_framework.permissions import IsAuthenticated
 
 from hospital.models import Appointment, Payment, User
 from hospital.serializers import AppointmentSerializer
-
 from rest_framework import permissions
-
-
 
 class AppointmentAPI(APIView):
     # permission_classes = [IsAuthenticated]
     permission_classes = [permissions.AllowAny] 
 
     def get(self, request):
-        # Lấy tất cả bác sĩ có trạng thái active
-        doctors = User.objects.filter(role='doctor', status=True)
-        
+        # Lọc theo chuyên khoa
+        specialty = request.GET.get('specialty')
+        if specialty:
+            doctors = User.objects.filter(
+                role='doctor',
+                status=True,
+                doctor_profile__specialty__iexact=specialty 
+                # không phân biệt chữ hoa chữ thường
+            )
+        else:
+            doctors = User.objects.filter(role='doctor', status=True)
         # Tạo danh sách bác sĩ với thông tin cần thiết
         doctor_list = []
         for doctor in doctors:
-            if doctor.img:
-                img_url = request.build_absolute_uri(doctor.img.url)
-            else:
-                img_url = None
+            profile = getattr(doctor, 'doctor_profile', None)
+            print('Doctor:', doctor.user_id, 'Profile:', profile)
+            specialty_val = getattr(profile, 'specialty', None)
+            degree = getattr(profile, 'degree', None)
+            img_url = profile.img.url if profile and profile.img else None
+
             doctor_info = {
                 'user_id': doctor.user_id,
                 'full_name': doctor.full_name,
-                'specialty': doctor.specialty,
-                'degree': doctor.degree,
-                'img' : img_url
+                'specialty': specialty_val,
+                'degree': degree,
+                'img': img_url
             }
             doctor_list.append(doctor_info)
         
@@ -45,7 +52,6 @@ class AppointmentAPI(APIView):
             date = serializer.validated_data['date']
             time = serializer.validated_data['time']
             doctor_user_id = serializer.validated_data['doctor_user_id']
-            doctor_user = User.objects.get(user_id=doctor_user_id)
             
             try:
                 # Kiểm tra bác sĩ tồn tại và có trạng thái active
@@ -74,12 +80,12 @@ class AppointmentAPI(APIView):
                 Payment.objects.create(
                     appointment=appointment,
                     total_amount=30000,
-                    payment_status='pending',  
-                    payment_method='banking'  
+                    payment_status='unpaid',  
+                    payment_method=''  
                 )
                 
                 return Response({
-                    "message": "Đăng ký lịch hẹn thành công!",
+                    "message": "Đã đăng kí lịch hẹn, vui lòng đặt cọc để hoàn tất!",
                     "appointment_id": appointment.appointment_id,
                 }, status=status.HTTP_201_CREATED)
                 
@@ -94,4 +100,3 @@ class AppointmentAPI(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-

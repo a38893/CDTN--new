@@ -94,9 +94,9 @@ class AppointmentSerializer(serializers.Serializer):
         return value
     
     def validate(self, data):
-        """
-        Kiểm tra nếu ngày hẹn là hôm nay, giờ hẹn phải là tương lai
-        """
+    
+        # Kiểm tra nếu ngày hẹn là hôm nay, giờ hẹn phải là tương lai
+    
         date = data.get('date')
         appointment_time = data.get('time')
         
@@ -144,10 +144,6 @@ class MedicalRecordDetailSerializer(serializers.ModelSerializer):
             'patient_tests', 'prescriptions'
         ]
 
-class PaymentViewSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Payment
-        fields = '__all__'
 
 
 

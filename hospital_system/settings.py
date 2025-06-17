@@ -112,7 +112,7 @@ WSGI_APPLICATION = 'hospital_system.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'csdl',
+        'NAME': 'csdla',
         'USER': 'postgres',
         'PASSWORD': '1234',
         'HOST': 'localhost',  
@@ -162,7 +162,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 VNPAY_RETURN_URL = 'http://localhost:8000/payment_return/'  
 VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'  
 VNPAY_API_URL = 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction'
-VNPAY_TMN_CODE = '0ZE53AQG'  
+# chạy ok
+
+VNPAY_TMN_CODE = '0ZE53AQG' 
 VNPAY_HASH_SECRET_KEY = 'U89C105M6Q347VMKQOUW0JSGDXIVO8BA'  
+
+
+
+
+# VNPAY_TMN_CODE = 'JBWNHMY7'  
+# VNPAY_HASH_SECRET_KEY = 'KHGFKEZJ1T5UQDDD2BXR68N1SDIFM4T9'  
 # Lỗi sai chữ ký do secret key và tmn code không đúng
 

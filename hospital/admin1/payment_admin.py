@@ -36,16 +36,16 @@ class PaymentAdmin(ImportExportModelAdmin):
             all_fields = [f.name for f in self.model._meta.fields if f.name != 'payment_id']
             return readonly + all_fields
         return readonly
+    
 
-    def has_delete_permission(self, request, obj=None):
         # Không cho phép xóa nếu đã paid
+    def has_delete_permission(self, request, obj=None):
         if obj and obj.payment_status == 'paid':
             return False
         return super().has_delete_permission(request, obj)
     
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        # Nếu là lễ tân, chỉ cho phép chỉnh sửa payment_status (nếu cần logic này, hãy kiểm soát ở form hoặc readonly_fields)
         # Đồng bộ trạng thái chi tiết thanh toán
         if obj.payment_status == 'paid':
             obj.details.update(detail_status='paid')

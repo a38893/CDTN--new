@@ -90,101 +90,45 @@ class MedicalRecordAdmin(ImportExportModelAdmin):
             return 
 
         instances = formset.save(commit=False)
-        for obj in instances:
-            obj.save()
-        formset.save_m2m()
-
-        details_by_type = {'test': []}
+        new_tests = []
         appointment = None
+
+        # Xác định các PatientTest mới được thêm (chưa có trong DB)
         for obj in instances:
-            appointment = obj.record.appointment
-            if isinstance(obj, PatientTest):
-                service_type = 'test'
-                service_id = obj.test.test_id
-                service_name = str(obj.test)
-                amount = getattr(obj.test, 'test_price', 0)
-                if not PaymentDetail.objects.filter(service_type=service_type, service_id=service_id, detail_status='unpaid', payment__appointment=appointment).exists():
-                    details_by_type['test'].append({
-                        'service_type': service_type,
-                        'service_id': service_id,
-                        'service_name': service_name,
-                        'amount': amount,
-                        'detail_quantity': 1
-                    })
-            #         })
-            # elif isinstance(obj, Prescription):
-            #     service_type = 'prescription'
-            #     service_id = obj.medication.medication_id
-            #     service_name = f"Thuốc: {obj.medication.medication_name}"
-            #     amount = getattr(obj.medication, 'medication_price', 0)
-            #     quantity = getattr(obj, 'prescription_quantity', 1)
-            #     if not PaymentDetail.objects.filter(service_type=service_type, service_id=service_id, detail_status='unpaid', payment__appointment=appointment).exists():
-            #         details_by_type['prescription'].append({
-            #             'service_type': service_type,
-            #             'service_id': service_id,
-            #             'service_name': service_name,
-            #             'amount': amount,
-            #             'detail_quantity': quantity
-            #         })
+            is_new = obj.pk is None
+            obj.save()
+            if isinstance(obj, PatientTest) and is_new:
+                new_tests.append(obj)
+                appointment = obj.record.appointment
 
         formset.save_m2m()
 
-    # Tạo Payment và PaymentDetail cho từng loại dịch vụ nếu có dịch vụ mới
-        for payment_type, details in details_by_type.items():
-            if details and appointment:
-                total_amount = sum(d['amount'] * d.get('detail_quantity', 1) for d in details)
-                payment = Payment.objects.create(
-                    appointment=appointment,
-                    payment_type=payment_type,
-                    total_amount=total_amount,
-                    payment_status='unpaid',
-                    payment_method='',
-                    payment_timestamp=timezone.now()
-                )
-                for d in details:
-                    PaymentDetail.objects.create(
-                        payment=payment,
-                        service_type=d['service_type'],
-                        service_id=d['service_id'],
-                        service_name=d['service_name'],
-                        amount=d['amount'],
-                        detail_quantity=d.get('detail_quantity', 1),
-                        detail_status='unpaid'
-                    )
-
-        # Cập nhật lại tổng tiền cho các payment đã tồn tại
-        if instances:
-            payment_types = set()
-            for obj in instances:
-                if isinstance(obj, PatientTest):
-                    payment_types.add('test')
-                elif isinstance(obj, Prescription):
-                    payment_types.add('prescription')
-            for payment_type in payment_types:
-                payment = Payment.objects.filter(
-                    appointment=instances[0].record.appointment,
-                    payment_type=payment_type
-                ).first()
-            if payment:
-                total = payment.details.aggregate(
-                    total=models.Sum(models.F('amount') * models.F('detail_quantity'))
-                )['total'] or 0
-                payment.total_amount = total
-                payment.save()
-            for d in details:
+        # Nếu có xét nghiệm mới được thêm, tạo Payment và PaymentDetail mới
+        if new_tests and appointment:
+            total_amount = sum(getattr(test.test, 'test_price', 0) for test in new_tests)
+            payment = Payment.objects.create(
+                appointment=appointment,
+                payment_type='test',
+                total_amount=total_amount,
+                payment_status='unpaid',
+                payment_method='',
+                payment_timestamp=timezone.now()
+            )
+            for test in new_tests:
                 PaymentDetail.objects.create(
                     payment=payment,
-                    service_type=d['service_type'],
-                    service_id=d['service_id'],
-                    service_name=d['service_name'],
-                    amount=d['amount'],
-                    detail_quantity=d.get('detail_quantity', 1), 
+                    service_type='test',
+                    service_id=test.test.test_id,
+                    service_name=str(test.test),
+                    amount=getattr(test.test, 'test_price', 0),
+                    detail_quantity=1,
                     detail_status='unpaid'
-    )
+                )
 
-    def has_view_permission(self, request, obj=None):
-        # Admin và lễ tân đều xem được, bác sĩ cũng xem được nếu là bác sĩ của record
-        return request.user.role in ['admin', 'receptionist', 'doctor']
+
+        def has_view_permission(self, request, obj=None):
+            # Admin và lễ tân đều xem được, bác sĩ cũng xem được nếu là bác sĩ của record
+            return request.user.role in ['admin', 'receptionist', 'doctor']
 
 
     def has_change_permission(self, request, obj=None):

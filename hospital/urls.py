@@ -14,6 +14,7 @@ from hospital.api.logout import LogoutAPI
 from hospital.api.update_profile import UserProfileView
 from hospital.api.bill import PaymentListAPI
 from hospital.api.specialty import SpecialtyListAPI
+from hospital.api.gen_time_slots import TimeSlotAPI
 from django.conf import settings
 from django.conf.urls.static import static
 router = DefaultRouter()
@@ -48,6 +49,8 @@ urlpatterns = [
 
     # gửi lại OTP
     path('api/resend-otp/', ResendOTP.as_view(), name='resend_otp'),
+
+    path('api/time-slots/', TimeSlotAPI.as_view(), name='time_slots_api'),
     path('api/specialties/', SpecialtyListAPI.as_view(), name='specialty_list_api'),
     # đổi mật khẩu
     path('api/change-password/', ChangePasswordAPI.as_view(), name='change_password'),

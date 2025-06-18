@@ -2,7 +2,7 @@ import random
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from datetime import date, time
-from hospital.degree_exam_fee import degree_exam_fee
+from django.core.validators import MinLengthValidator
 
 
 
@@ -29,6 +29,7 @@ class OtpUsers(models.Model):
 
     class Meta:
         db_table = 'otp_users'
+
 class User(AbstractBaseUser):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
@@ -38,7 +39,7 @@ class User(AbstractBaseUser):
     ]
     user_id = models.AutoField(primary_key=True, verbose_name='Mã người dùng')
     username = models.CharField(max_length=50, unique=True, verbose_name='Tên đăng nhập')
-    password = models.CharField(max_length=128, verbose_name='Mật khẩu')
+    password = models.CharField(max_length=128,validators=[MinLengthValidator(6)], verbose_name='Mật khẩu')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient', verbose_name='Vai trò')
     status = models.BooleanField( default=False, verbose_name='Trạng thái hoạt động') 
     full_name = models.CharField(max_length=100, verbose_name='Họ và tên')
@@ -53,11 +54,15 @@ class User(AbstractBaseUser):
 
 
     def __str__(self):
-        degree = getattr(getattr(self, 'doctor_profile', None), 'degree', '')
-        specialty = getattr(getattr(self, 'doctor_profile', None), 'specialty', '')
-        from hospital.degree_exam_fee import degree_exam_fee
-        price = degree_exam_fee.get(degree, '')
-        return f"{self.user_id} - {self.full_name} - {degree} - {specialty} - {price}"
+        profile = getattr(self, 'doctor_profile', None)
+        if profile:
+            degree_obj = getattr(profile, 'degree', None)
+            degree = getattr(degree_obj, 'degree_name', '')
+            price = getattr(degree_obj, 'fee', '')
+            specialty = getattr(profile, 'specialty', '')
+            return f"{self.user_id} - {self.full_name} - {degree} - {specialty} - {price}"
+        return f"{self.user_id} - {self.full_name}"
+
     def has_perm(self, perm, obj=None):
         return True
 
@@ -85,7 +90,7 @@ class ProfileDoctor(models.Model):
     profile_id = models.AutoField(primary_key=True, verbose_name='Mã hồ sơ bác sĩ')
     user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'role': 'doctor'}, related_name='doctor_profile')
     specialty = models.CharField(max_length=50, verbose_name='Chuyên khoa')
-    degree = models.CharField(max_length=50, verbose_name='Bằng cấp')
+    degree = models.ForeignKey('DegreeExamFee', on_delete= models.PROTECT, verbose_name='Bằng cấp')
     img = models.ImageField(upload_to='img/', blank=True, null=True, verbose_name='Ảnh đại diện')
 
     def __str__(self):
@@ -94,6 +99,16 @@ class ProfileDoctor(models.Model):
         db_table = 'profile_doctors'
         verbose_name = 'Hồ sơ bác sĩ'
         verbose_name_plural = 'Hồ sơ bác sĩ'
+
+class DegreeExamFee(models.Model):
+    degree_id = models.AutoField(primary_key=True, verbose_name='Mã bằng cấp')
+    degree_name = models.CharField(max_length=50, verbose_name='Tên bằng cấp')
+    fee = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Phí khám bệnh')
+    def __str__(self):
+        return f"{self.degree_name} - Phí: {self.fee} VND"
+    class Meta:
+        db_table = 'degree_exam_fee'
+        verbose_name = 'Bằng cấp và phí khám bệnh'
 
 class Appointment(models.Model):
     appointment_id = models.AutoField(primary_key=True, verbose_name='Mã lịch hẹn')
@@ -242,7 +257,7 @@ class Payment(models.Model):
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Tổng số tiền')
     payment_status = models.CharField(
         max_length=20,verbose_name='Trạng thái thanh toán',
-        choices=[('unpaid', 'Chưa thanh toán'), ('paid', 'Đã thanh toán')],
+        choices=[('unpaid', 'Chưa thanh toán'), ('paid', 'Đã thanh toán'), ('expired', 'Đã hết hạn')],
         default='unpaid'
     )
     payment_type = models.CharField(max_length=20, choices=[('test', 'Xét nghiệm'), ('prescription', 'thuốc'), ('deposit', 'Đặt cọc'), ('exam', 'Tiền khám')], default='deposit', blank=True, null=True, verbose_name='Loại thanh toán')

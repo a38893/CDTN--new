@@ -1,12 +1,12 @@
 
 from django.db import models
 from django.contrib import admin
-from hospital.models import Appointment, User, Payment, PaymentDetail
+from hospital.models import Appointment, User, Payment, PaymentDetail, DegreeExamFee
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from django import forms
 from django.contrib.auth import get_user_model
-from hospital.degree_exam_fee import degree_exam_fee
+
 from hospital.api.gen_time_slots import generate_time_slots
 class AppointmentResource(resources.ModelResource):
     class Meta:
@@ -17,28 +17,32 @@ class AppointmentForm(forms.ModelForm):
         model = Appointment
         fields = '__all__'
     # lấy khung giờ cho phép đặt lịch
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        time_choice = [(t,t) for t in generate_time_slots()]
+def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    time_choice = [(t, t) for t in generate_time_slots()]
+    if 'appointment_time' in self.fields:
         self.fields['appointment_time'].widget = forms.Select(choices=time_choice)
-    def clean(self):
-        cleaned_data = super().clean()
-        doctor = cleaned_data.get('doctor_user_id')
-        day = cleaned_data.get('appointment_day')
-        time = cleaned_data.get('appointment_time')
-        status_list = ['pending', 'confirmed', 'full']
-        if doctor and day and time:
-            qs = Appointment.objects.filter(
-                doctor_user_id=doctor,
-                appointment_day=day,
-                appointment_time=time,
-                appointment_status__in=status_list
-            )
-            if self.instance.pk:
-                qs = qs.exclude(pk=self.instance.pk)
-            if qs.exists():
-                raise forms.ValidationError("Bác sĩ đã có lịch hẹn vào thời gian này. Vui lòng chọn thời gian khác!")
-        return cleaned_data
+        if not self.instance or not self.instance.pk:
+            # Nếu tạo mới thì mặc định là 08:00
+            self.fields['appointment_time'].initial = '08:30'
+    # def clean(self):
+    #     cleaned_data = super().clean()
+    #     doctor = cleaned_data.get('doctor_user_id')
+    #     day = cleaned_data.get('appointment_day')
+    #     time = cleaned_data.get('appointment_time')
+    #     status_list = ['pending', 'confirmed', 'full']
+    #     if doctor and day and time:
+    #         qs = Appointment.objects.filter(
+    #             doctor_user_id=doctor,
+    #             appointment_day=day,
+    #             appointment_time=time,
+    #             appointment_status__in=status_list
+    #         )
+    #         if self.instance.pk:
+    #             qs = qs.exclude(pk=self.instance.pk)
+    #         if qs.exists():
+    #             raise forms.ValidationError("Bác sĩ đã có lịch hẹn vào thời gian này. Vui lòng chọn thời gian khác!")
+    #     return cleaned_data
 
 
 @admin.register(Appointment)
@@ -82,10 +86,9 @@ class AppointmentAdmin(ImportExportModelAdmin):
 
 
         degree = obj.doctor_user_id.doctor_profile.degree
-        exam_fee = degree_exam_fee.get(degree, 0)
+        exam_fee = degree.fee if degree else 0
         deposit = 30000
-        total_after_discount = int(exam_fee * 0.85)
-        full = total_after_discount - deposit
+        full = exam_fee - deposit
         if full < 0:
                 full = 0
         if old_status =='pending' and obj.appointment_status == 'confirmed':

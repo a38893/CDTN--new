@@ -3,14 +3,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from hospital.degree_exam_fee import  degree_exam_fee
-from hospital.models import Appointment, Payment, User
+from hospital.models import Appointment, Payment, User, ProfileDoctor, DegreeExamFee
 from hospital.serializers import AppointmentSerializer
 from rest_framework import permissions
 from datetime import datetime, time, timedelta
 from hospital.api.gen_time_slots import  is_valid_appointment_time
 class AppointmentAPI(APIView):
-    permission_classes = [permissions.AllowAny] 
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         specialty = request.GET.get('specialty')
@@ -18,29 +17,24 @@ class AppointmentAPI(APIView):
             doctors = User.objects.filter(
                 role='doctor',
                 status=True,
-                doctor_profile__specialty__iexact=specialty 
+                doctor_profile__specialty__iexact=specialty
             )
         else:
             doctors = User.objects.filter(role='doctor', status=True)
         doctor_list = []
         for doctor in doctors:
-            profile = getattr(doctor, 'doctor_profile', None)
-            specialty_val = getattr(profile, 'specialty', None)
-            degree = getattr(profile, 'degree', None)
-            img_url = profile.img.url if profile and profile.img else None
-            exam_fee = degree_exam_fee.get(degree, 0) 
-            exam_fee_discount = int(exam_fee * 0.85) 
-            doctor_info = {
-                'user_id': doctor.user_id,
-                'full_name': doctor.full_name,
-                'specialty': specialty_val,
-                'degree': degree,
-                'exam_fee': exam_fee,
-                'exam_fee_discount': exam_fee_discount,
-                'img': img_url
-            }
-            doctor_list.append(doctor_info)
-        
+            profile = getattr(doctor, 'doctor_profile', None)  
+            if profile:
+                degree_obj = profile.degree
+                doctor_info = {
+                    'user_id': doctor.user_id,
+                    'full_name': doctor.full_name,
+                    'specialty': profile.specialty,
+                    'degree': degree_obj.degree_name if degree_obj else 'Chưa cập nhật',
+                    'exam_fee': float(degree_obj.fee) if degree_obj else 0,
+                    'img': profile.img.url if profile.img else None
+                }
+                doctor_list.append(doctor_info)
         return Response({
             "doctors": doctor_list
         }, status=status.HTTP_200_OK)

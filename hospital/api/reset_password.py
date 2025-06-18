@@ -30,6 +30,8 @@ class ResetPasswordAPI(APIView):
                 return Response({"message": "Không tìm thấy người dùng!"}, status=status.HTTP_404_NOT_FOUND)
             if not new_password or not new_password2:
                 return Response({"message": "Vui lòng nhập đầy đủ mật khẩu mới và xác nhận mật khẩu mới!"}, status=status.HTTP_400_BAD_REQUEST)
+            if len(new_password) < 6:
+                return Response({"message": "Mật khẩu mới phải có ít nhất 6 ký tự!"}, status=status.HTTP_400_BAD_REQUEST)
             if new_password != new_password2:
                 return Response({"message": "Mật khẩu mới và xác nhận mật khẩu không khớp!"}, status=status.HTTP_400_BAD_REQUEST)
             

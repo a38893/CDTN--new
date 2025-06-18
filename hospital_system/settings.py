@@ -159,7 +159,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-VNPAY_RETURN_URL = ' https://2376-2405-4802-1bf1-6c30-91bd-7fce-b239-ffd9.ngrok-free.app/payment_return/'  
+VNPAY_RETURN_URL = 'http://localhost:8000/payment_return/'  
 VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'  
 VNPAY_API_URL = 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction'
 # chạy ok

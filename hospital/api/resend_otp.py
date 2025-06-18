@@ -24,4 +24,4 @@ class ResendOTP(APIView):
             send_otp_email(user.gmail, otp)
             return Response({"message": "Đã gửi lại mã OTP!"}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            return Response({"message": "Người dùng không tồn tại!"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Sai gmail!"}, status=status.HTTP_404_NOT_FOUND)

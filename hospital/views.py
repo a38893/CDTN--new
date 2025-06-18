@@ -11,7 +11,8 @@ from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect
 import urllib.parse
-
+from django.utils import timezone
+from datetime import timedelta
 from hospital.forms import PaymentForm
 from hospital.models import Appointment, Payment, PaymentDetail, Prescription
 from hospital.vnpay import vnpay
@@ -27,6 +28,21 @@ def hmacsha512(key, data):
 
 def payment(request, payment_id):
     payment = Payment.objects.get(pk=payment_id)
+    if payment.payment_type == 'deposit':
+        expired_time = payment.payment_timestamp + timedelta(minutes=30)
+        if payment.payment_status == 'unpaid' and timezone.now() > expired_time:
+            payment.payment_status = 'expired'
+            payment.save()
+            return render(request, "payment/payment_return.html", {
+                "title": "Kết quả thanh toán",
+                "result": "Hóa đơn đặt cọc đã hết hạn!",
+                "order_id": payment.order_code,
+                "amount": payment.total_amount,
+                "order_desc": f"Thanh toan hoa don {payment.order_code}",
+                "vnp_transaction_no": "",
+                "vnp_response_code": "99",
+                "payment": payment
+            })
     vnp = vnpay()
     expire_date = (datetime.now() + timedelta(minutes=15)).strftime('%Y%m%d%H%M%S')  
     vnp.requestData = {
@@ -96,7 +112,22 @@ def payment_return(request):
 
         try:
             payment = Payment.objects.get(order_code=order_code)
-            # Lấy order_desc từ thông tin đã lưu khi tạo Payment
+            if payment.payment_status == 'deposit':
+            # đổi lại minutes nếu muốn thời gian hết hạn khác
+                expired_time = payment.payment_timestamp + timedelta(minutes=30)
+                if payment.payment_status == 'unpaid' and timezone.now() > expired_time:
+                    payment.payment_status = 'expired'
+                    payment.save()
+                    return render(request, "payment/payment_return.html", {
+                        "title": "Kết quả thanh toán",
+                        "result": result,
+                        "order_id": order_code,
+                        "amount": amount,
+                        "order_desc": order_desc,
+                        "vnp_transaction_no": vnp_transaction_no,
+                        "vnp_response_code": vnp_response_code,
+                        "payment": payment,})
+
             order_desc = f"Thanh toan lich hen{payment.appointment.appointment_id}"
         except Payment.DoesNotExist:
             payment = None

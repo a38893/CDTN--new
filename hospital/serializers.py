@@ -27,8 +27,20 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 # 'username', 'full_name', 'gender', 'phone', 'address', 'birth_day'
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    password2 = serializers.CharField(write_only=True, required=True, label="Xác nhận mật khẩu")
+    password = serializers.CharField(
+        write_only=True, 
+        required=True, 
+        min_length=6,  # Thêm min_length
+        style={'input_type': 'password'},
+        error_messages={'min_length': 'Mật khẩu phải có ít nhất 6 ký tự.'}
+    )
+    password2 = serializers.CharField(
+        write_only=True, 
+        required=True, 
+        label="Xác nhận mật khẩu",
+        min_length=6,  # Thêm min_length
+        error_messages={'min_length': 'Mật khẩu phải có ít nhất 6 ký tự.'}
+    )
     class Meta:
         model = User
         fields = ['username', 'password','password2', 'full_name', 'gender', 'phone', 'address', 'birth_day', 'gmail']
@@ -66,7 +78,13 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
-    password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    password = serializers.CharField(
+        required=True, 
+        write_only=True, 
+        style={'input_type': 'password'},
+        min_length=6,  
+        error_messages={'min_length': 'Mật khẩu phải có ít nhất 6 ký tự.'}
+    )
 
 class AppointmentSerializer(serializers.Serializer):
     date = serializers.DateField(required=True)

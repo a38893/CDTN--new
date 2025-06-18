@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-w+^hp!^l+zkeak!#k(%hr5yj1@p!38iwrynxxzh)s2da2ci5rd
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -159,13 +159,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-VNPAY_RETURN_URL = 'http://localhost:8000/payment_return/'  
+VNPAY_RETURN_URL = ' https://2376-2405-4802-1bf1-6c30-91bd-7fce-b239-ffd9.ngrok-free.app/payment_return/'  
 VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'  
 VNPAY_API_URL = 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction'
 # chạy ok
 
 VNPAY_TMN_CODE = 'WOEINPH7' 
-VNPAY_HASH_SECRET_KEY = '0CWEA83X5RQYVR9J31HRB7Y61FMGZQQO'  
+VNPAY_HASH_SECRET_KEY = '3CITEQLQJNMHCE6U04PBOBAEMIV92UBR'  
 
 # OZE53AQG
 # U89C105M6Q347VMKQOUW0JSGDXIVO8BA

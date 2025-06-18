@@ -17,10 +17,12 @@ class vnpay:
             else:
                 seq = 1
                 queryString = key + '=' + urllib.parse.quote_plus(str(val))
-
+        print("Chuỗi query string trước khi ký:", queryString)
         hashValue = self.__hmacsha512(secret_key, queryString)
-        return vnpay_payment_url + "?" + queryString + '&vnp_SecureHash=' + hashValue
-
+        print("vnp_SecureHash:", hashValue) 
+        payment_url =  vnpay_payment_url + "?" + queryString + '&vnp_SecureHash=' + hashValue
+        print("URL thanh toán:", payment_url)
+        return payment_url
     def validate_response(self, secret_key):
         vnp_SecureHash = self.responseData['vnp_SecureHash']
         # Remove hash params

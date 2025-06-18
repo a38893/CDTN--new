@@ -7,11 +7,16 @@ from django.core.exceptions import ValidationError
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from django.forms.models import BaseInlineFormSet
-
+from django.contrib.auth import get_user_model
+from django.contrib.admin import SimpleListFilter
 # from hospital.admin1.PatientTestInlineForm import PatientTestInline
 class MedicalRecordResource(resources.ModelResource):
     class Meta:
         model = MedicalRecord
+
+
+
+
 
 class PatientTestInline(admin.TabularInline):
     model = PatientTest
@@ -64,11 +69,20 @@ class MedicalReocrdForm(forms.ModelForm):
 @admin.register(MedicalRecord)
 class MedicalRecordAdmin(ImportExportModelAdmin):
     resource_class = MedicalRecordResource
-    list_display = ('record_id_display', 'appointment_display', 'record_status_display', 'diagnosis_display', 'treatment_display', 'record_result_display')
-    search_fields = ('record_id', 'appointment__appointment_id', 'diagnosis')
+    list_display = ('record_id_display', 'appointment_display','get_patient_id', 'record_status_display', 'diagnosis_display', 'treatment_display', 'record_result_display')
+    search_fields = ('record_id', 'appointment__appointment_id','appointment__patient_user_id__exact')
     inlines = [PatientTestInline, PrescriptionInline]
     autocomplete_fields = ('appointment',)
+    raw_id_fields = ('appointment',)
     form = MedicalReocrdForm
+
+    def get_patient_id(self, obj):
+        # Kiểm tra liên kết appointment và patient_user_id có tồn tại không
+        if obj.appointment and obj.appointment.patient_user_id:
+            return obj.appointment.patient_user_id.pk  
+        return ''
+    get_patient_id.short_description = 'Mã bệnh nhân'
+
     def record_status_display(self, obj):
         return obj.get_record_status_display()
     record_status_display.short_description = 'Trạng thái'

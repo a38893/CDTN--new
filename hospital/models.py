@@ -2,6 +2,7 @@ import random
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from datetime import date, time
+from hospital.degree_exam_fee import degree_exam_fee
 
 
 
@@ -52,8 +53,11 @@ class User(AbstractBaseUser):
 
 
     def __str__(self):
-        return self.username
-
+        degree = getattr(getattr(self, 'doctor_profile', None), 'degree', '')
+        specialty = getattr(getattr(self, 'doctor_profile', None), 'specialty', '')
+        from hospital.degree_exam_fee import degree_exam_fee
+        price = degree_exam_fee.get(degree, '')
+        return f"{self.user_id} - {self.full_name} - {degree} - {specialty} - {price}"
     def has_perm(self, perm, obj=None):
         return True
 
@@ -256,7 +260,6 @@ class Payment(models.Model):
         else:
             if self.payment_status == 'paid':
                 is_new_paid = True
-
         if not self.order_code:
             while True:
                 code = f"ORD{random.randint(100000, 999999)}"
@@ -300,7 +303,6 @@ class PaymentDetail(models.Model):
         choices=[('unpaid', 'Chưa thanh toán'), ('paid', 'Đã thanh toán')],
         default='unpaid'
     ) 
-    # detail_method = models.CharField(max_length=50, blank=True, null=True, verbose_name='Phương thức thanh toán')
     def __str__(self):
         return f"{self.service_name} ({self.amount})"
 

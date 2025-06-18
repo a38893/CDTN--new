@@ -16,6 +16,7 @@ from hospital.forms import PaymentForm
 from hospital.models import Appointment, Payment, PaymentDetail, Prescription
 from hospital.vnpay import vnpay
 
+from datetime import datetime, timedelta
 
 
 
@@ -27,6 +28,7 @@ def hmacsha512(key, data):
 def payment(request, payment_id):
     payment = Payment.objects.get(pk=payment_id)
     vnp = vnpay()
+    expire_date = (datetime.now() + timedelta(minutes=15)).strftime('%Y%m%d%H%M%S')  
     vnp.requestData = {
         'vnp_Version': '2.1.0',
         'vnp_Command': 'pay',
@@ -34,12 +36,14 @@ def payment(request, payment_id):
         'vnp_Amount': int(payment.total_amount * 100),
         'vnp_CurrCode': 'VND',
         'vnp_TxnRef': payment.order_code,
-        'vnp_OrderInfo': f"Thanh toán đơn hàng #{payment.order_code}",
+        'vnp_OrderInfo': f"Thanh toan hoa don {payment.order_code}",
         'vnp_OrderType': 'billpayment',
         'vnp_Locale': 'vn',
         'vnp_ReturnUrl': settings.VNPAY_RETURN_URL,
         'vnp_CreateDate': datetime.now().strftime('%Y%m%d%H%M%S'),
         'vnp_IpAddr': get_client_ip(request),
+        'vnp_ExpireDate': expire_date,  
+        
     }
     vnpay_payment_url = vnp.get_payment_url(settings.VNPAY_PAYMENT_URL, settings.VNPAY_HASH_SECRET_KEY)
     return redirect(vnpay_payment_url)
@@ -93,7 +97,7 @@ def payment_return(request):
         try:
             payment = Payment.objects.get(order_code=order_code)
             # Lấy order_desc từ thông tin đã lưu khi tạo Payment
-            order_desc = f"Thanh toán lịch hẹn #{payment.appointment.appointment_id}"
+            order_desc = f"Thanh toan lich hen{payment.appointment.appointment_id}"
         except Payment.DoesNotExist:
             payment = None
             order_desc = "Không tìm thấy đơn hàng"

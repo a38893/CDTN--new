@@ -5,22 +5,49 @@ from hospital.models import Appointment, User, Payment, PaymentDetail
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from django import forms
+from django.contrib.auth import get_user_model
 from hospital.degree_exam_fee import degree_exam_fee
+from hospital.api.gen_time_slots import generate_time_slots
 class AppointmentResource(resources.ModelResource):
     class Meta:
         model = Appointment
 
-
-
-
+class AppointmentForm(forms.ModelForm):
+    class Meta:
+        model = Appointment
+        fields = '__all__'
+    # lấy khung giờ cho phép đặt lịch
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        time_choice = [(t,t) for t in generate_time_slots()]
+        self.fields['appointment_time'].widget = forms.Select(choices=time_choice)
+    def clean(self):
+        cleaned_data = super().clean()
+        doctor = cleaned_data.get('doctor_user_id')
+        day = cleaned_data.get('appointment_day')
+        time = cleaned_data.get('appointment_time')
+        status_list = ['pending', 'confirmed', 'full']
+        if doctor and day and time:
+            qs = Appointment.objects.filter(
+                doctor_user_id=doctor,
+                appointment_day=day,
+                appointment_time=time,
+                appointment_status__in=status_list
+            )
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("Bác sĩ đã có lịch hẹn vào thời gian này. Vui lòng chọn thời gian khác!")
+        return cleaned_data
 
 
 @admin.register(Appointment)
 class AppointmentAdmin(ImportExportModelAdmin):
     resource_class = AppointmentResource
+    form = AppointmentForm
+    autocomplete_fields = ('patient_user_id', 'doctor_user_id')
     list_display = ('appointment_id', 'patient_user_id', 'doctor_user_id', 'appointment_day', 'appointment_time', 'appointment_status')
     search_fields = ('patient_user_id__username', 'doctor_user_id__username', 'appointment_day', 'appointment_time', 'appointment_id')
-    autocomplete_fields = ('patient_user_id', 'doctor_user_id')
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.role in ['admin', 'receptionist']:

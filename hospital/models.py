@@ -109,7 +109,7 @@ class DegreeExamFee(models.Model):
     class Meta:
         db_table = 'degree_exam_fee'
         verbose_name = 'Bằng cấp và phí khám bệnh'
-
+        verbose_name_plural = "Bằng cấp và phí khám bệnh"
 class Appointment(models.Model):
     appointment_id = models.AutoField(primary_key=True, verbose_name='Mã lịch hẹn')
     patient_user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_patient', verbose_name='Người dùng bệnh nhân')

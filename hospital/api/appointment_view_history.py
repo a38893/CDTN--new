@@ -14,9 +14,8 @@ from rest_framework import  viewsets, permissions, renderers
 
 class AppointmentHistoryViewAPI(viewsets.ReadOnlyModelViewSet):
     serializer_class = AppointmentHistoryViewSerializer
-    permission_classes = [permissions.AllowAny] 
 
-    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     renderer_classes = [renderers.JSONRenderer]
     
     def get_queryset(self):

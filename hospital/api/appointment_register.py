@@ -8,27 +8,7 @@ from hospital.models import Appointment, Payment, User
 from hospital.serializers import AppointmentSerializer
 from rest_framework import permissions
 from datetime import datetime, time, timedelta
-
-def generate_time_slots():
-    slots = []
-    # Buổi sáng
-    start = datetime.strptime("08:00", "%H:%M")
-    end = datetime.strptime("11:45", "%H:%M")
-    while start <= end:
-        slots.append(start.time())
-        start += timedelta(minutes=15)
-    # Buổi chiều
-    start = datetime.strptime("13:30", "%H:%M")
-    end = datetime.strptime("16:45", "%H:%M")
-    while start <= end:
-        slots.append(start.time())
-        start += timedelta(minutes=15)
-    return slots
-
-def is_valid_appointment_time(appointment_time):
-    valid_slots = generate_time_slots()
-    return appointment_time in valid_slots
-
+from hospital.api.gen_time_slots import  is_valid_appointment_time
 class AppointmentAPI(APIView):
     permission_classes = [permissions.AllowAny] 
 
@@ -85,13 +65,15 @@ class AppointmentAPI(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             doctor_user_id = serializer.validated_data['doctor_user_id']
+            # chỉ cho phép đặt lịch trùng khi trạng thái là chưa đặt cọc
+            # còn đặt cọc rồi thì không thể đặt được cùng khung giờ bác sĩ nữa
             try:
                 doctor = User.objects.get(user_id=doctor_user_id, role='doctor', status=True)
                 existing_appointment = Appointment.objects.filter(
                     doctor_user_id=doctor,
                     appointment_day=date,
                     appointment_time=time_obj,
-                    appointment_status__in=['confirmed', 'pending']
+                    appointment_status__in=['confirmed', 'pending', 'full']
                 ).exists()
                 if existing_appointment:
                     return Response({
@@ -104,7 +86,7 @@ class AppointmentAPI(APIView):
                     appointment_time=time_obj,
                     appointment_status='unpaid_deposit' 
                 )
-                Payment.objects.create(
+                payment = Payment.objects.create(
                     appointment=appointment,
                     total_amount=30000,
                     payment_status='unpaid',  
@@ -113,6 +95,7 @@ class AppointmentAPI(APIView):
                 return Response({
                     "message": "Đã đăng kí lịch hẹn, vui lòng đặt cọc để hoàn tất!",
                     "appointment_id": appointment.appointment_id,
+                    "payment_id": payment.payment_id,
                 }, status=status.HTTP_201_CREATED)
             except User.DoesNotExist:
                 return Response({

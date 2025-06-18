@@ -39,67 +39,63 @@ class AppointmentAdmin(ImportExportModelAdmin):
         return request.user.role in ['admin', 'receptionist']
     def has_add_permission(self, request):
         return request.user.role in ['admin', 'receptionist']
-    # lọc appointment_id trạng thái đã thanh toán tiền khám
-    def get_search_results(self, request, queryset, search_term):
-        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
-        queryset = queryset.filter(appointment_status='full')
-        return queryset, use_distinct
+    
+
 
     def save_model(self, request, obj, form, change):
-        if obj.pk:
+        is_new = obj.pk is None
+        if not is_new:
             old_obj = Appointment.objects.get(pk=obj.pk)
             old_status = old_obj.appointment_status
         else:
             old_status = None
+
         super().save_model(request, obj, form, change)
 
-        if old_status == 'pending' and obj.appointment_status in ['full', 'confirmed']:
-            degree = obj.doctor_user_id.doctor_profile.degree
-            exam_fee = degree_exam_fee.get(degree, 0)
-            deposit = 30000
-            total_after_discount = int(exam_fee * 0.85)
-            full = total_after_discount - deposit
-            if full < 0:
+
+
+        degree = obj.doctor_user_id.doctor_profile.degree
+        exam_fee = degree_exam_fee.get(degree, 0)
+        deposit = 30000
+        total_after_discount = int(exam_fee * 0.85)
+        full = total_after_discount - deposit
+        if full < 0:
                 full = 0
-
-
+        if old_status =='pending' and obj.appointment_status == 'confirmed':
             if not Payment.objects.filter(appointment=obj, payment_type='exam').exists():
-                if obj.appointment_status == 'full':
-                    # Tạo payment cho lịch hẹn đang thực hiện
                     payment = Payment.objects.create(
                         appointment=obj,
                         payment_type='exam',
                         total_amount=full,
-                        payment_status='paid',
-                        payment_method='cash',
-                )
+                        payment_status='unpaid',
+                        payment_method='',
+                    )
                     PaymentDetail.objects.create(
                         payment=payment,
                         service_type='exam',
                         service_id=-1,
-                        service_name='Phí khám bệnh',
+                        service_name='Phí khám bệnh còn lại',
                         amount=full,
                         detail_quantity=1,
-                        detail_status='paid',)
-                
-                elif obj.appointment_status == 'confirmed':
-                    # Tạo payment cho lịch hẹn đã xác nhận
-                    if obj.appointment_status == 'full':
-                        payment = Payment.objects.create(
-                            appointment=obj,
-                            payment_type='exam',
-                            total_amount=full,
-                            payment_status='unpaid',
-                            payment_method='banking',
+                        detail_status='unpaid',
+                    )
+
+        if is_new and obj.appointment_status == 'confirmed':
+            if not Payment.objects.filter(appointment=obj, payment_type='exam').exists():
+                payment = Payment.objects.create(
+                    appointment=obj,
+                    payment_type='exam',
+                    total_amount=exam_fee,
+                    payment_status='unpaid',
+                    payment_method='',
                 )
-                        PaymentDetail.objects.create(
-                            payment=payment,
-                            service_type='exam',
-                            service_id=-1,
-                            service_name='Phí khám bệnh',
-                            amount=full,
-                            detail_quantity=1,
-                            detail_status='unpaid',)
+                PaymentDetail.objects.create(
+                    payment=payment,
+                    service_type='exam',
+                    service_id=-1,
+                    service_name='Phí khám bệnh',
+                    amount=exam_fee,
+                    detail_quantity=1,
+                    detail_status='unpaid',)
 
-
-
+            

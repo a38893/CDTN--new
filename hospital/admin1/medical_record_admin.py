@@ -48,6 +48,19 @@ class PrescriptionInline(admin.TabularInline):
     show_change_link = True
     readonly_fields = ('prescription_status',)
 
+
+class MedicalReocrdForm(forms.ModelForm):
+    class Meta:
+        model = MedicalRecord
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        appointment = cleaned_data.get('appointment')    
+        if appointment and appointment.appointment_status != 'full':
+            raise ValidationError("Chưa thanh toán tiền khám!")
+        return cleaned_data
+
 @admin.register(MedicalRecord)
 class MedicalRecordAdmin(ImportExportModelAdmin):
     resource_class = MedicalRecordResource
@@ -55,7 +68,7 @@ class MedicalRecordAdmin(ImportExportModelAdmin):
     search_fields = ('record_id', 'appointment__appointment_id', 'diagnosis')
     inlines = [PatientTestInline, PrescriptionInline]
     autocomplete_fields = ('appointment',)
-
+    form = MedicalReocrdForm
     def record_status_display(self, obj):
         return obj.get_record_status_display()
     record_status_display.short_description = 'Trạng thái'
@@ -84,6 +97,7 @@ class MedicalRecordAdmin(ImportExportModelAdmin):
                 prescription_status='unpaid',
                 instructions=''
             )
+
 
     def save_formset(self, request, form, formset, change):
         if not formset.is_valid():
@@ -125,10 +139,7 @@ class MedicalRecordAdmin(ImportExportModelAdmin):
                     detail_status='unpaid'
                 )
 
-    def get_search_results(self, request, queryset, search_term):
-        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
-        queryset = queryset.filter(appointment_status='full')
-        return queryset, use_distinct
+
 
 
     def has_view_permission(self, request, obj=None):
@@ -156,11 +167,3 @@ class MedicalRecordAdmin(ImportExportModelAdmin):
         # Chỉ admin được xóa
         return request.user.role == 'admin'
     
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        if request.user.role in ['admin', 'receptionist']:
-            return qs
-        elif request.user.role == 'doctor':
-            return qs.filter(appointment__doctor_user_id=request.user)
-        
-        return qs.none()

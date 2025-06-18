@@ -51,3 +51,8 @@ class PaymentAdmin(ImportExportModelAdmin):
             obj.details.update(detail_status='paid')
         elif obj.payment_status in ['unpaid', 'pending']:
             obj.details.update(detail_status='unpaid')
+
+        # cập nhật thanh toán phí khám bệnh bằng tiền mặt
+        if obj.payment_type == 'exam' and obj.payment_method == 'cash':
+            obj.appointment.appointment_status = 'full'
+            obj.appointment.save()

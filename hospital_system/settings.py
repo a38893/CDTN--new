@@ -164,13 +164,14 @@ VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
 VNPAY_API_URL = 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction'
 # chạy ok
 
-VNPAY_TMN_CODE = '0ZE53AQG' 
-VNPAY_HASH_SECRET_KEY = 'U89C105M6Q347VMKQOUW0JSGDXIVO8BA'  
+VNPAY_TMN_CODE = 'WOEINPH7' 
+VNPAY_HASH_SECRET_KEY = '0CWEA83X5RQYVR9J31HRB7Y61FMGZQQO'  
 
-
+# OZE53AQG
+# U89C105M6Q347VMKQOUW0JSGDXIVO8BA
 
 
 # VNPAY_TMN_CODE = 'JBWNHMY7'  
 # VNPAY_HASH_SECRET_KEY = 'KHGFKEZJ1T5UQDDD2BXR68N1SDIFM4T9'  
-# Lỗi sai chữ ký do secret key và tmn code không đúng
+# Lỗi sai chữ ký, không tìm thấy website do secret key và tmn code không đúng
 

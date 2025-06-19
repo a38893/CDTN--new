@@ -3,13 +3,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from hospital.models import Appointment, Payment, User, ProfileDoctor, DegreeExamFee
+from hospital.models import Appointment, Payment, PaymentDetail, User, ProfileDoctor, DegreeExamFee
 from hospital.serializers import AppointmentSerializer
 from rest_framework import permissions
 from datetime import datetime, time, timedelta
 from hospital.api.gen_time_slots import  is_valid_appointment_time
 class AppointmentAPI(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
 
     def get(self, request):
         specialty = request.GET.get('specialty')
@@ -67,7 +71,7 @@ class AppointmentAPI(APIView):
                     doctor_user_id=doctor,
                     appointment_day=date,
                     appointment_time=time_obj,
-                    appointment_status__in=['confirmed', 'pending', 'full']
+                    appointment_status__in=['confirmed', 'pending', 'full']                                             
                 ).exists()
                 if existing_appointment:
                     return Response({
@@ -86,6 +90,14 @@ class AppointmentAPI(APIView):
                     payment_status='unpaid',  
                     payment_method=''  
                 )
+                PaymentDetail.objects.create(
+                    payment=payment,
+                    detail_type='deposit',
+                    detail_status='unpaid',
+                    detail_amount=30000,
+                    detail_quantity=1,
+                    service_name='Đặt cọc lịch hẹn khám',
+                    server_id = 0)
                 return Response({
                     "message": "Đã đăng kí lịch hẹn, vui lòng đặt cọc để hoàn tất!",
                     "appointment_id": appointment.appointment_id,

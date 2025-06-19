@@ -21,16 +21,15 @@ class PatientTestAdmin(ImportExportModelAdmin):
         return request.user.role in ['admin', 'receptionist', 'doctor']
 
     def has_change_permission(self, request, obj=None):
-        # Admin và lễ tân được sửa
-        return request.user.role in ['admin', 'receptionist', 'doctor']
+        return request.user.role in ['admin',  'doctor']
 
     def has_add_permission(self, request):
         # Admin và lễ tân được thêm
-        return request.user.role in ['admin', 'receptionist', 'doctor']
+        return request.user.role in ['admin',  'doctor']
 
     def has_delete_permission(self, request, obj=None):
         # Admin và lễ tân được xóa
-        return request.user.role in ['admin', 'receptionist', 'doctor']
+        return request.user.role in ['admin',  'doctor']
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.test_status in ['Pending', 'Done']:
             return [field.name for field in self.model._meta.fields]

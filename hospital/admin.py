@@ -15,5 +15,7 @@ from hospital.admin1.lab_test_admin import *
 from hospital.admin1.appointment_admin import *
 from hospital.admin1.prescription_detail_admin import *
 from hospital.admin1.degree_exam_fee_admin import *
+from hospital.admin1.black_list_admin import *
+from hospital.admin1.group_admin import *
 admin.site.site_header = "Quản lý bệnh viện LHM"
 
